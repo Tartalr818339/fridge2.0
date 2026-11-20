@@ -21,6 +21,7 @@
   };
 
   const appEl = $('#app-content');
+  const topbarEl = $('#app-topbar');
   const tabEl = $('#app-tabbar');
   const modalRoot = $('#modal-root');
   const toastRoot = $('#toast-root');
@@ -49,30 +50,56 @@
     { key: 'restock', icon: ICON.cart, label: '补货' },
     { key: 'device', icon: ICON.gear, label: '我的' }
   ];
+  const PAGE_TITLES = {
+    home: '鲜知', fridge: '我的冰箱', recipes: '今日食谱', recipe: '菜谱详情',
+    restock: '补货清单', product: '商品详情', cart: '购物车', device: '我的', nfc: '冰箱已连接'
+  };
+  const DARK_TOP_PAGES = ['home', 'fridge', 'recipes', 'restock', 'device'];
+  let lastPage = null;
+
+  function renderTopbar(page) {
+    const urgent = ITEMS.filter(i => i.remainingDays <= 2).length;
+    const dark = DARK_TOP_PAGES.includes(page);
+    topbarEl.className = 'app-topbar' + (dark ? ' over-dark' : '') + (appEl.scrollTop > 8 ? ' scrolled' : '');
+    topbarEl.innerHTML = `<div class="tb-title">${PAGE_TITLES[page] || '鲜知'}</div>
+      <button class="tb-status" data-go="fridge"><span class="tb-dot${urgent ? ' warn' : ''}"></span>${ITEMS.length} 件食材${urgent ? ` · ${urgent} 件快到期` : ''}</button>`;
+  }
+
+  appEl.addEventListener('scroll', () => {
+    topbarEl.classList.toggle('scrolled', appEl.scrollTop > 8);
+  });
 
   function renderApp() {
     const page = STATE.appPage;
-    if (page === 'nfc') appEl.innerHTML = pageNfc();
-    else if (page === 'home') appEl.innerHTML = pageHome();
-    else if (page === 'fridge') appEl.innerHTML = pageFridge();
-    else if (page === 'recipes') appEl.innerHTML = pageRecipes();
-    else if (page === 'recipe') appEl.innerHTML = pageRecipe();
-    else if (page === 'restock') appEl.innerHTML = pageRestock();
-    else if (page === 'product') appEl.innerHTML = pageProduct();
-    else if (page === 'cart') appEl.innerHTML = pageCart();
-    else if (page === 'device') appEl.innerHTML = pageDevice();
+    let html = '';
+    if (page === 'nfc') html = pageNfc();
+    else if (page === 'home') html = pageHome();
+    else if (page === 'fridge') html = pageFridge();
+    else if (page === 'recipes') html = pageRecipes();
+    else if (page === 'recipe') html = pageRecipe();
+    else if (page === 'restock') html = pageRestock();
+    else if (page === 'product') html = pageProduct();
+    else if (page === 'cart') html = pageCart();
+    else if (page === 'device') html = pageDevice();
+    appEl.innerHTML = `<div class="page-wrap">${html}</div>`;
+
+    if (lastPage !== page) { appEl.scrollTop = 0; lastPage = page; }
+    renderTopbar(page);
 
     const active = (page === 'recipe') ? 'recipes'
       : (page === 'product' || page === 'cart') ? 'restock'
       : (page === 'fridge' || page === 'nfc') ? 'home' : page;
     tabEl.innerHTML = TABS.map(t => `<button class="tab ${active === t.key ? 'active' : ''}" data-tab="${t.key}"><span class="tab-ico">${t.icon}</span>${t.label}</button>`).join('');
     $$('[data-app-route]').forEach(b => b.classList.toggle('active', b.dataset.appRoute === page));
-    // 从首页分区卡片进入时，滚动定位到对应分区
+
+    // 从首页分区卡片进入时，平滑滚动到对应分区，用轻提示代替原来的绿框
     if (page === 'fridge' && STATE.focusLayer) {
+      const layer = STATE.focusLayer;
+      STATE.focusLayer = null;
       setTimeout(() => {
-        const target = appEl.querySelector(`.fd-layer[data-layer="${CSS.escape(STATE.focusLayer)}"]`);
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 40);
+        const target = appEl.querySelector(`.fd-layer[data-layer="${CSS.escape(layer)}"]`);
+        if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); toast(`已定位到${layer}`); }
+      }, 60);
     }
   }
 
@@ -145,11 +172,13 @@
   // 手机端冰箱食材库：下单同步后可直接查看新入库食材
   function pageFridge() {
     const urgent = ITEMS.filter(i => i.remainingDays <= 2).length;
+    const freshCount = ITEMS.filter(i => i.freshness === 'green').length;
+    const soonCount = ITEMS.filter(i => i.freshness === 'yellow').length;
+    const nowCount = ITEMS.filter(i => i.freshness === 'red').length;
     const layers = LAYERS.map((layer) => {
       const its = ITEMS.filter(i => i.layer === layer);
       const meta = LAYER_META[layer];
-      const focused = STATE.focusLayer === layer ? ' focused' : '';
-      return `<div class="fd-layer${focused}" data-layer="${esc(layer)}">
+      return `<div class="fd-layer" data-layer="${esc(layer)}">
         <div class="fd-layer-head"><h4>${layerIcon(layer)} ${esc(layer)}</h4><span class="fd-temp">${meta.temp} · ${its.length} 件</span></div>
         <div class="fd-list">
           ${its.map(i => `<div class="fd-item ${i.freshness}">
@@ -166,13 +195,13 @@
     return `<div class="fridge-hero">
         <button class="hero-back" data-go="home">‹ 返回首页</button>
         <h2>我的冰箱</h2>
-        <p>${ITEMS.length} 件食材${urgent ? ` · ${urgent} 件快到期` : ''}</p>
+        <p>${ITEMS.length} 件食材 · ${LAYERS.length} 个分区${urgent ? ` · ${urgent} 件优先吃掉` : ''}</p>
       </div>
       <button class="add-entry" data-action="add-open">＋ 添加食材 <span style="opacity:.75">手动 / 一句话 / 拍小票</span></button>
-      <div class="temp-banner">
-        <span class="temp-chip"><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:4px"></i>新鲜</span>
-        <span class="temp-chip"><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--yellow);margin-right:4px"></i>还剩 2 天</span>
-        <span class="temp-chip warn"><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:4px"></i>还剩 1 天 / 已过期</span>
+      <div class="status-bar">
+        <div class="status-chip"><b>${freshCount}</b><span>新鲜</span></div>
+        <div class="status-chip soon"><b>${soonCount}</b><span>2 天内吃</span></div>
+        <div class="status-chip now"><b>${nowCount}</b><span>优先吃掉</span></div>
       </div>
       ${layers}
       <div class="al-foot">快到期的食材会用黄色、红色标出来</div>`;
@@ -181,7 +210,7 @@
   function pageRecipes() {
     return `<div class="app-hero"><h2>今日食谱</h2><p>优先用掉快到期的食材</p></div>
       <div class="ai-entry" data-action="ai-open">
-        <div class="ai-entry-top"><span class="ai-orb">🍳</span><div><h4>今天吃什么</h4><p>说个菜名，帮你看看冰箱里缺什么</p></div><span class="ai-arrow">›</span></div>
+        <div class="ai-entry-top"><span class="ai-orb">🍳</span><div><h4>今天吃什么</h4><p>想吃什么就输入什么，冰箱食材帮你对照着买</p></div><span class="ai-arrow">›</span></div>
         <div class="ai-entry-chips"><span>番茄炒蛋</span><span>香煎三文鱼</span><span>豆腐汤</span></div>
       </div>
       <div class="sec-title">全部食谱 <span class="more">共 ${RECIPES.length} 道</span></div>
@@ -422,43 +451,76 @@
     return { recipe, have, need, expiringInRecipe };
   }
 
-  // 配菜匹配：优先菜名/标签整体匹配（不做单字拆分）→ 计算已有/需补食材
-  // 匹配不到时才按冰箱现有食材推荐「最适合做」的菜
+  // 用户说什么菜就做什么菜；菜库只是帮忙认食材，不替用户换菜
+  const INGREDIENT_HINTS = [
+    ['鲜鸡蛋', ['鸡蛋', '蛋']], ['番茄', ['番茄', '西红柿']], ['土豆', ['土豆', '马铃薯']],
+    ['鸡翅', ['鸡翅']], ['鸡胸肉', ['鸡胸', '鸡肉', '鸡']], ['三文鱼', ['三文鱼', '鱼']],
+    ['牛肉', ['牛肉', '牛腩']], ['虾', ['虾']], ['豆腐', ['豆腐']], ['西兰花', ['西兰花', '花椰菜']],
+    ['胡萝卜', ['胡萝卜']], ['青椒', ['青椒', '辣椒']], ['洋葱', ['洋葱']], ['蘑菇', ['蘑菇', '菌菇']],
+    ['生菜', ['生菜', '青菜', '时蔬', '蔬菜']], ['面条', ['面条', '米线', '拉面']],
+    ['吐司面包', ['吐司', '面包', '三明治']], ['全脂牛奶', ['牛奶', '奶昔', '奶茶']],
+    ['原味酸奶', ['酸奶']], ['可乐', ['可乐']], ['柠檬', ['柠檬']], ['香肠', ['香肠']],
+    ['红苹果', ['苹果']], ['蓝莓', ['蓝莓']]
+  ];
+
+  function guessDishMeta(q) {
+    if (/汤|炖|煮|煲|火锅/.test(q)) return { emoji: '🍲', minutes: 25 };
+    if (/面|米线|粉/.test(q)) return { emoji: '🍜', minutes: 15 };
+    if (/奶昔|饮品|果汁|奶茶/.test(q)) return { emoji: '🥤', minutes: 5 };
+    if (/蒸|烤/.test(q)) return { emoji: '🍱', minutes: 25 };
+    if (/鱼|虾|海鲜/.test(q)) return { emoji: '🐟', minutes: 20 };
+    if (/鸡|鸭/.test(q)) return { emoji: '🍗', minutes: 20 };
+    if (/肉|排骨|牛/.test(q)) return { emoji: '🍖', minutes: 25 };
+    if (/蛋/.test(q)) return { emoji: '🍳', minutes: 12 };
+    if (/蔬|菜|西兰花|蘑菇/.test(q)) return { emoji: '🥬', minutes: 12 };
+    return { emoji: '🍽️', minutes: 15 };
+  }
+
+  function guessDishSteps(q) {
+    if (/汤|炖|煮|煲|火锅/.test(q)) return ['食材洗净切好，肉类先焯水去腥。', '冷水下锅，煮开后转小火慢炖入味。', '加盐调味，撒点葱花就能上桌。'];
+    if (/奶昔|饮品|果汁|奶茶/.test(q)) return ['水果或食材切成小块。', '全部放进搅拌机，加适量冰水或牛奶。', '打匀倒出，马上喝最香。'];
+    if (/蒸|烤/.test(q)) return ['食材处理干净，提前腌制入味。', '上锅蒸或放进烤箱，加热至熟透。', '取出稍放凉即可享用。'];
+    if (/炒|煎|炸|爆|拌/.test(q)) return ['食材洗净沥干，切成合适大小。', '热锅下油，先炒主料再放配菜。', '按口味调味，炒匀出锅。'];
+    return ['食材洗净，按需要切配。', '按家常做法加热调味。', '装盘即可享用。'];
+  }
+
+  function customDishFromQuery(q) {
+    const meta = guessDishMeta(q);
+    const ingredients = INGREDIENT_HINTS
+      .filter(entry => entry[1].some(word => q.includes(word)))
+      .map(entry => entry[0]);
+    return { id: 'custom-' + Date.now(), name: q, emoji: meta.emoji, minutes: meta.minutes,
+      tags: [], ingredients, steps: guessDishSteps(q), custom: true };
+  }
+
   function aiResolveRecipe(query) {
     // 去掉口语前缀，避免「我想吃鱼」被「我想/吃」干扰而匹配错菜
     const q = String(query || '').trim().replace(/^(我想吃|我想要|我想|想吃|来一份|来个|我要|吃|做)/, '').trim();
     const all = RECIPES.map(r => ({ ...r, ingredients: r.ingredients.map(x => x.name) }))
       .concat(AI_DISHES.map(d => ({ id: 'ai-' + d.name, name: d.name, emoji: d.emoji, minutes: d.minutes, tags: d.tags, ingredients: d.ingredients, steps: ['准备好所需食材。', '按家常做法烹饪调味。', '装盘即可享用。'] })));
 
+    if (!q) return { recipe: null, mode: 'empty' };
+
     let hit = null, mode = 'exact';
-    if (q) {
-      // 1) 菜名整体相等或互相包含（只在 2 字以上时判断包含，避免单字误命中）
-      hit = all.find(d => d.name === q);
-      if (!hit && q.length >= 2) hit = all.find(d => d.name.includes(q) || q.includes(d.name));
-      // 2) 标签整体匹配：一个标签词要么完整出现在输入里，要么输入完整出现在标签里
-      if (!hit) {
-        let best = 0;
-        all.forEach(d => {
-          let score = 0;
-          (d.tags || []).forEach(t => {
-            if (t.length >= 2 && q.includes(t)) score += t.length * 2;
-            else if (t.includes(q)) score += q.length;
-          });
-          if (score > best) { best = score; hit = d; }
-        });
-        if (hit) mode = 'keyword';
-      }
-    }
-    // 3) 没写菜名或完全匹配不到：按「冰箱已有食材最多 + 快到期优先」推荐
-    let recommended = false;
+    // 1) 菜名整体相等或互相包含（只在 2 字以上时判断包含，避免单字误命中）
+    hit = all.find(d => d.name === q);
+    if (!hit && q.length >= 2) hit = all.find(d => d.name.includes(q) || q.includes(d.name));
+    // 2) 标签整体匹配：一个标签词要么完整出现在输入里，要么输入完整出现在标签里
     if (!hit) {
-      const scored = all.map(d => {
-        const { have, expiringInRecipe } = aiAnalyzeRecipe(d);
-        return { d, score: have.length * 2 + expiringInRecipe.length * 3 };
-      }).sort((a, b) => b.score - a.score);
-      hit = scored[0].d; recommended = true; mode = 'smart';
+      let best = 0;
+      all.forEach(d => {
+        let score = 0;
+        (d.tags || []).forEach(t => {
+          if (t.length >= 2 && q.includes(t)) score += t.length * 2;
+          else if (t.includes(q)) score += q.length;
+        });
+        if (score > best) { best = score; hit = d; }
+      });
+      if (hit) mode = 'keyword';
     }
-    return { recipe: hit, recommended, mode };
+    // 3) 没匹配到就用用户输入的菜名建一道菜，绝不替用户换成别的菜
+    if (!hit) return { recipe: customDishFromQuery(q), mode: 'custom' };
+    return { recipe: hit, mode };
   }
 
   function showAiModal() {
@@ -466,52 +528,60 @@
       <div class="modal-card ai-modal" data-stop="1">
         <div class="ai-modal-head">
           <span class="ai-orb">🍳</span>
-          <div class="grow"><h3>今天吃什么</h3><p>说出想吃的，帮你对照冰箱里的食材</p></div>
+          <div class="grow"><h3>今天吃什么</h3><p>先说想吃什么，再帮你对照冰箱</p></div>
           <button class="al-close" data-action="close-ai" aria-label="关闭">${ICON.x}</button>
         </div>
         <div class="ai-input-row">
-          <input id="ai-input" class="ai-input" placeholder="想吃什么？比如番茄炒蛋、可乐鸡翅…" />
-          <button class="btn btn-primary" data-action="ai-submit">找做法</button>
+          <input id="ai-input" class="ai-input" placeholder="任意菜名都可以，比如：麻辣香锅、奶油蘑菇汤…" />
+          <button class="btn btn-primary" data-action="ai-submit">看看怎么做</button>
         </div>
         <div class="ai-chips">
           <button class="ai-chip" data-action="ai-quick" data-q="番茄炒蛋">🍳 番茄炒蛋</button>
           <button class="ai-chip" data-action="ai-quick" data-q="可乐鸡翅">🍗 可乐鸡翅</button>
+          <button class="ai-chip" data-action="ai-quick" data-q="麻辣香锅">🌶️ 麻辣香锅</button>
+          <button class="ai-chip" data-action="ai-quick" data-q="奶油蘑菇汤">🍲 奶油蘑菇汤</button>
           <button class="ai-chip" data-action="ai-quick" data-q="减脂餐">🥗 减脂餐</button>
-          <button class="ai-chip" data-action="ai-quick" data-q="早餐三明治">🥪 早餐三明治</button>
-          <button class="ai-chip" data-action="ai-quick" data-q="我想吃鱼">🐟 我想吃鱼</button>
         </div>
-        <div class="ai-footnote">说出菜名或口味，帮你看看冰箱里缺什么</div>
+        <div class="ai-footnote">想吃什么由你决定，冰箱食材只用来帮你省事</div>
       </div>
     </div>`;
     setTimeout(() => { const el = $('#ai-input'); if (el) el.focus(); }, 50);
   }
 
   function renderAiResult(query) {
-    const { recipe, recommended, mode } = aiResolveRecipe(query);
+    const { recipe, mode } = aiResolveRecipe(query);
+    if (!recipe) { toast('先说说想吃什么菜'); const el = $('#ai-input'); if (el) el.focus(); return; }
     STATE.aiDish = recipe;
     const { have, need, expiringInRecipe } = aiAnalyzeRecipe(recipe);
-    const chipHtml = have.map(i => `<span class="ai-have-chip ${i.freshness}">${i.icon} ${esc(i.name)} · 剩${i.remainingDays}天</span>`).join('');
+    const chipHtml = have.length
+      ? have.map(i => `<span class="ai-have-chip ${i.freshness}">${i.icon} ${esc(i.name)} · 剩${i.remainingDays}天</span>`).join('')
+      : '<span class="ai-none">冰箱里没找到这道菜的明确用料</span>';
     const needHtml = need.length
       ? need.map(n => `<span class="ai-need-chip">＋ ${esc(n)}</span>`).join('')
-      : '<span class="ai-none">冰箱食材齐全，无需补货 🎉</span>';
+      : '<span class="ai-none">暂时不用补货 🎉</span>';
     const expiringTip = expiringInRecipe.length
-      ? `<div class="ai-tip">⏰ 这道菜能用掉快到期的食材：<b>${expiringInRecipe.map(esc).join('、')}</b>，今天做正合适</div>` : '';
+      ? `<div class="ai-tip">⏰ 正好能用掉快到期的：<b>${expiringInRecipe.map(esc).join('、')}</b>，今天做正合适</div>` : '';
+    const customTip = mode === 'custom' && !have.length && !need.length
+      ? '<div class="ai-tip">这道菜不在常用菜库里，先按家常步骤整理好了；要买什么可以随手加到补货清单。</div>' : '';
+    const modeText = mode === 'custom' ? '按你想的菜整理好了，再看看冰箱里有什么'
+      : mode === 'keyword' ? '按你说的口味找到这道菜' : '按菜名对照了冰箱里的食材';
     modalRoot.innerHTML = `<div class="modal-overlay" data-action="close-modal">
       <div class="modal-card ai-modal ai-result" data-stop="1">
         <div class="ai-modal-head">
           <span class="ai-orb">🍳</span>
-          <div class="grow"><h3>配菜结果</h3><p>${mode === 'smart' ? '按冰箱现有食材，给你推荐一道' : mode === 'keyword' ? '按你说的口味，找到这道菜' : '按菜名对照了冰箱里的食材'}</p></div>
+          <div class="grow"><h3>按你想的来做</h3><p>${modeText}</p></div>
           <button class="al-close" data-action="close-ai" aria-label="关闭">${ICON.x}</button>
         </div>
         <div class="ai-dish"><span class="ai-dish-emoji">${recipe.emoji}</span><div><h4>${esc(recipe.name)}</h4><p>⏱ ${recipe.minutes} 分钟 · ${recipe.steps.length} 步完成</p></div></div>
-        ${expiringTip}
-        <div class="ai-sec"><h5>✅ 冰箱已有（${have.length}）</h5><div class="ai-chips-static">${chipHtml || '<span class="ai-none">暂无</span>'}</div></div>
-        <div class="ai-sec"><h5>🛒 需要补充（${need.length}）</h5><div class="ai-chips-static">${needHtml}</div></div>
+        ${expiringTip}${customTip}
+        <div class="ai-sec"><h5>✅ 冰箱里能用上（${have.length}）</h5><div class="ai-chips-static">${chipHtml}</div></div>
+        <div class="ai-sec"><h5>🛒 建议补货（${need.length}）</h5><div class="ai-chips-static">${needHtml}</div></div>
         <div class="ai-summary">已有 ${have.length} 样 · 需补 ${need.length} 样${expiringInRecipe.length ? ' · 用掉快到期食材 ' + expiringInRecipe.length + ' 样' : ''}</div>
         <div class="ai-actions">
           ${need.length ? `<button class="btn btn-primary grow" data-action="ai-add-restock" data-recipe="${recipe.id}">把需补食材加入补货清单</button>` : ''}
           <button class="btn btn-ghost grow" data-action="ai-view-steps">看详细做法</button>
         </div>
+        <button class="ai-change" data-action="ai-change">换个菜名</button>
       </div>
     </div>`;
   }
@@ -890,10 +960,12 @@
       if (a === 'ai-view-steps') { showAiSteps(); return; }
       if (a === 'checkout') { doCheckout(); return; }
       if (a === 'view-fridge') { closeModal(); STATE.appPage = 'fridge'; renderApp(); toast('已打开你的冰箱，新食材已入库'); return; }
-      if (a === 'ai-open') { showAiModal(); return; }
+      if (a === 'ai-open' || a === 'ai-change') { showAiModal(); return; }
       if (a === 'ai-quick') { renderAiResult(actionEl.dataset.q); return; }
       if (a === 'ai-submit') {
-        const q = ($('#ai-input') && $('#ai-input').value) || '';
+        const input = $('#ai-input');
+        const q = (input && input.value) || '';
+        if (!q.trim()) { toast('先说说想吃什么菜'); if (input) input.focus(); return; }
         renderAiResult(q); return;
       }
       if (a === 'ai-add-restock') {
