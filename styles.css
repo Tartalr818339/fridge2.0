@@ -41,7 +41,8 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 }
 .outer-brand{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--ink-2)}
 .outer-brand img{width:26px;height:26px;border-radius:7px;background:#fff;object-fit:contain;padding:2px}
-.app-outer-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.app-outer-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;align-items:center}
+.outer-hint{font-size:13px;color:#6B7C72}
 
 /* ============ 手机 App ============ */
 .phone-frame{
@@ -64,6 +65,7 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .app-hero p{font-size:14px;color:#D3EFDC;margin-top:4px;position:relative}
 .sec-title{font-size:14px;font-weight:700;margin:16px 0 10px;display:flex;align-items:center;justify-content:space-between}
 .sec-title .more{font-size:14px;color:#6B7C72;font-weight:500}
+.sec-title button.more{border:0;background:none;cursor:pointer;min-height:44px;padding:4px 0 4px 10px;color:var(--green-deep);font-weight:700}
 .card{background:var(--card);border-radius:16px;padding:14px;box-shadow:0 3px 14px rgba(20,50,30,.05);border:1px solid var(--line)}
 .row{display:flex;align-items:center;gap:10px}
 .grow{flex:1;min-width:0}
@@ -115,6 +117,7 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 
 /* 冰箱食材库（手机端） */
 .fridge-hero{background:linear-gradient(135deg,#123D28,#1B6B3C);color:#fff;border-radius:20px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
+.hero-back{position:relative;display:inline-flex;align-items:center;min-height:34px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:999px;padding:4px 12px;font-size:13px;margin-bottom:8px}
 .fridge-hero h2{font-size:18px;position:relative}
 .fridge-hero p{font-size:14px;color:#D3EFDC;margin-top:4px;position:relative}
 .temp-banner{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}

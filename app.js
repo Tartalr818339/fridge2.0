@@ -42,9 +42,9 @@
   }
 
   /* ==================== 手机 App ==================== */
+  // 底部导航只放四个独立入口；冰箱食材是首页分区的下钻页面，不单列 Tab
   const TABS = [
     { key: 'home', icon: ICON.home, label: '首页' },
-    { key: 'fridge', icon: ICON.fridge, label: '食材' },
     { key: 'recipes', icon: ICON.book, label: '食谱' },
     { key: 'restock', icon: ICON.cart, label: '补货' },
     { key: 'device', icon: ICON.gear, label: '我的' }
@@ -62,7 +62,9 @@
     else if (page === 'cart') appEl.innerHTML = pageCart();
     else if (page === 'device') appEl.innerHTML = pageDevice();
 
-    const active = (page === 'recipe') ? 'recipes' : (page === 'product' || page === 'cart') ? 'restock' : page;
+    const active = (page === 'recipe') ? 'recipes'
+      : (page === 'product' || page === 'cart') ? 'restock'
+      : (page === 'fridge' || page === 'nfc') ? 'home' : page;
     tabEl.innerHTML = TABS.map(t => `<button class="tab ${active === t.key ? 'active' : ''}" data-tab="${t.key}"><span class="tab-ico">${t.icon}</span>${t.label}</button>`).join('');
     $$('[data-app-route]').forEach(b => b.classList.toggle('active', b.dataset.appRoute === page));
     // 从首页分区卡片进入时，滚动定位到对应分区
@@ -136,7 +138,7 @@
           </div>
         </div>
       </div>
-      <div class="sec-title">冰箱分区 <span class="more">点开看看每格有什么</span></div>
+      <div class="sec-title">冰箱分区 <button class="more" data-go="fridge">查看全部食材 ›</button></div>
       <div class="layer-summary">${layerCards}</div>`;
   }
 
@@ -162,6 +164,7 @@
       </div>`;
     }).join('');
     return `<div class="fridge-hero">
+        <button class="hero-back" data-go="home">‹ 返回首页</button>
         <h2>我的冰箱</h2>
         <p>${ITEMS.length} 件食材${urgent ? ` · ${urgent} 件快到期` : ''}</p>
       </div>
