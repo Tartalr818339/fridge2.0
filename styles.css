@@ -53,12 +53,10 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 }
 .app-content{flex:1;overflow-y:auto;scrollbar-width:none;padding:58px 16px 108px;-webkit-overflow-scrolling:touch}
 .app-content::-webkit-scrollbar{display:none}
-.app-topbar{position:absolute;top:0;left:0;right:0;height:58px;z-index:7;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 18px;pointer-events:none;color:var(--ink);transition:background .28s ease,box-shadow .28s ease,color .28s ease,backdrop-filter .28s ease}
-.app-topbar.over-dark:not(.scrolled){color:#fff}
-.app-topbar.scrolled{background:rgba(255,255,255,.78);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border-bottom:1px solid rgba(255,255,255,.7);box-shadow:0 6px 20px rgba(18,61,40,.10);color:var(--ink)}
+.app-topbar{position:absolute;top:0;left:0;right:0;height:58px;z-index:7;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 18px;pointer-events:none;color:var(--ink);background:rgba(255,255,255,.72);backdrop-filter:blur(12px) saturate(140%);-webkit-backdrop-filter:blur(12px) saturate(140%);border-bottom:1px solid rgba(20,50,30,.06);transition:background .28s ease,box-shadow .28s ease,backdrop-filter .28s ease}
+.app-topbar.scrolled{background:rgba(255,255,255,.94);backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);border-bottom-color:rgba(255,255,255,.7);box-shadow:0 6px 20px rgba(18,61,40,.10)}
 .tb-title{font-size:15px;font-weight:800;letter-spacing:.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tb-status{pointer-events:auto;display:inline-flex;align-items:center;gap:6px;flex:none;min-height:34px;padding:5px 11px;border-radius:999px;font-size:13px;font-weight:700;background:rgba(255,255,255,.16);color:inherit;transition:.25s}
-.app-topbar.scrolled .tb-status{background:var(--green-soft);color:var(--green-deep)}
+.tb-status{pointer-events:auto;display:inline-flex;align-items:center;gap:6px;flex:none;min-height:34px;padding:5px 11px;border-radius:999px;font-size:13px;font-weight:700;background:var(--green-soft);color:var(--green-deep);transition:.25s}
 .tb-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
 .tb-dot.warn{background:var(--red)}
 .page-wrap{animation:pageIn .28s ease-out both}

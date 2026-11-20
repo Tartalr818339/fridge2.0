@@ -54,13 +54,11 @@
     home: '鲜知', fridge: '我的冰箱', recipes: '今日食谱', recipe: '菜谱详情',
     restock: '补货清单', product: '商品详情', cart: '购物车', device: '我的', nfc: '冰箱已连接'
   };
-  const DARK_TOP_PAGES = ['home', 'fridge', 'recipes', 'restock', 'device'];
   let lastPage = null;
 
   function renderTopbar(page) {
     const urgent = ITEMS.filter(i => i.remainingDays <= 2).length;
-    const dark = DARK_TOP_PAGES.includes(page);
-    topbarEl.className = 'app-topbar' + (dark ? ' over-dark' : '') + (appEl.scrollTop > 8 ? ' scrolled' : '');
+    topbarEl.className = 'app-topbar' + (appEl.scrollTop > 8 ? ' scrolled' : '');
     topbarEl.innerHTML = `<div class="tb-title">${PAGE_TITLES[page] || '鲜知'}</div>
       <button class="tb-status" data-go="fridge"><span class="tb-dot${urgent ? ' warn' : ''}"></span>${ITEMS.length} 件食材${urgent ? ` · ${urgent} 件快到期` : ''}</button>`;
   }
