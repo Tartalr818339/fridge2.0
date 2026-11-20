@@ -6,10 +6,34 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+  // 内联 SVG 图标（避免部分设备上 emoji 渲染成方框）
+  const svg = (paths, size) => `<svg width="${size || 20}" height="${size || 20}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+  const ICON = {
+    x: svg('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>', 20),
+    home: svg('<path d="m3 10 9-7 9 7v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>', 22),
+    book: svg('<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>', 22),
+    cart: svg('<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"/>', 22),
+    gear: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.65 1.65 0 0 0-1.8-.3 1.65 1.65 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.65 1.65 0 0 0-1-1.5 1.65 1.65 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.65 1.65 0 0 0 .3-1.8 1.65 1.65 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.65 1.65 0 0 0 1.5-1 1.65 1.65 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.65 1.65 0 0 0 1.8.3H9a1.65 1.65 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.65 1.65 0 0 0 1 1.5 1.65 1.65 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.65 1.65 0 0 0-.3 1.8V9a1.65 1.65 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.65 1.65 0 0 0-1.5 1z"/>', 22),
+    snow: svg('<path d="M12 2v20M4.9 6.5l14.2 11M19.1 6.5 4.9 17.5M12 2l-2 2m2-2 2 2m-2 18-2-2m2 2 2-2"/>', 18),
+    fridge: svg('<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M5 10h14M9 6v2M9 14v3"/>', 18),
+    leaf: svg('<path d="M11 20A7 7 0 0 1 4 13c0-6 7-11 16-11 0 9-5 16-11 16z"/><path d="M4 20c3-5 8-9 14-11"/>', 18),
+    box: svg('<path d="m21 8-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/>', 18),
+    spark: svg('<path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 16v4M17 18h4"/>', 20)
+  };
+
   const appEl = $('#app-content');
   const tabEl = $('#app-tabbar');
   const modalRoot = $('#modal-root');
   const toastRoot = $('#toast-root');
+
+  // 分区图标用 SVG，避免 emoji 在某些设备渲染成方框
+  function layerIcon(layer) {
+    if (layer === '冷冻室') return ICON.snow;
+    if (layer === '果蔬抽屉') return ICON.leaf;
+    if (layer === '冷藏室下层') return ICON.box;
+    if (layer === '冷藏室上层') return ICON.snow;
+    return ICON.fridge;
+  }
 
   function toast(msg) {
     const t = document.createElement('div');
@@ -20,10 +44,10 @@
 
   /* ==================== 手机 App ==================== */
   const TABS = [
-    { key: 'home', icon: '🏠', label: '首页' },
-    { key: 'recipes', icon: '📖', label: '食谱' },
-    { key: 'restock', icon: '🛒', label: '补货' },
-    { key: 'device', icon: '⚙️', label: '设备' }
+    { key: 'home', icon: ICON.home, label: '首页' },
+    { key: 'recipes', icon: ICON.book, label: '食谱' },
+    { key: 'restock', icon: ICON.cart, label: '补货' },
+    { key: 'device', icon: ICON.gear, label: '设备' }
   ];
 
   function renderApp() {
@@ -74,63 +98,57 @@
     const dayItems = byDay(sel);
     const layerCards = LAYERS.map((layer) => {
       const its = ITEMS.filter(i => i.layer === layer);
-      const shown = its.slice(0, 3);
+      const meta = LAYER_META[layer];
+      const shown = its.slice(0, 2);
       const more = its.length - shown.length;
       return `<button class="layer-mini" data-action="app-open-layer" data-layer="${esc(layer)}">
-        <div class="lm-top"><span class="lm-name">${esc(layer)}</span><span class="lm-count">${its.length} 件</span></div>
-        <div class="lm-tags">${shown.map(i => `<span class="lm-tag ${i.freshness}"><i></i><span>${esc(i.name)}</span><b>${i.remainingDays}天</b></span>`).join('') || '<span class="lm-tag none">暂无食材</span>'}</div>
-        <span class="lm-open">${more > 0 ? `查看全部 ${its.length} 样食材` : '查看食材'} ›</span>
+        <div class="lm-top"><span class="lm-name">${layerIcon(layer)} ${esc(layer)}</span><span class="lm-count">${its.length} 件</span></div>
+        <div class="lm-tags">${shown.map(i => `<span class="lm-tag ${i.freshness}"><i></i><span>${esc(i.name)}</span><b>${i.remainingDays === 0 ? '已过期' : i.remainingDays + '天'}</b></span>`).join('') || '<span class="lm-tag none">暂无食材</span>'}</div>
+        <span class="lm-open">${more > 0 ? `还有 ${more} 样 · 查看全部` : '查看食材'} ›</span>
       </button>`;
     }).join('');
     return `<div class="app-hero">
         <h2>早上好，今天也要新鲜 🍃</h2>
         <p>冰箱共 ${ITEMS.length} 件食材 · 数据同步于 ${esc(STATE.device.lastSync)}</p>
       </div>
+      <button class="ai-entry" data-action="ai-entry-open" style="margin-bottom:14px">
+        <div class="ai-entry-top"><span class="ai-orb">✦</span><div class="grow"><h4>AI 一键录入食材</h4><p>说一句话 / 拍小票，自动识别并入库</p></div><span class="ai-arrow">›</span></div>
+      </button>
       <div class="alert-banner">
         <span class="ab-ico">⏰</span>
         <div class="grow"><h4>临期提醒（一周内将过期 ${weekItems.length} 件）</h4>
-          <p>点选下方天数，查看当天到期的食材状态。</p>
+          <p>点选天数查看当天到期的食材；数字代表该天到期的食材件数。</p>
           <div class="expiry-tabs">
-            ${dayCounts.map(x => `<button class="expiry-tab ${sel === x.d ? 'active' : ''}" data-action="expiry-day" data-day="${x.d}">${x.d}天<i>${x.n}</i></button>`).join('')}
+            ${dayCounts.map(x => `<button class="expiry-tab ${sel === x.d ? 'active' : ''}" data-action="expiry-day" data-day="${x.d}">${x.d === 0 ? '已过期' : x.d + '天'}<i>${x.n}件</i></button>`).join('')}
           </div>
           <div class="expiry-list-mini">
             ${dayItems.length ? dayItems.map(i => `<div class="expiry-mini-row">
               <span class="em-ico">${i.icon}</span><span class="em-name">${esc(i.name)}</span>
-              <span class="em-meta">${FRESHNESS[i.freshness].label} · ${i.quantity}${esc(i.unit)}</span>
+              <span class="em-meta">${i.remainingDays === 0 ? '已过期' : FRESHNESS[i.freshness].label} · ${i.quantity}${esc(i.unit)}</span>
             </div>`).join('') : '<div class="expiry-none">当天暂无将过期食材 🎉</div>'}
           </div>
         </div>
       </div>
-      <div class="sec-title">四层分区总览 <span class="more">点击卡片查看食材</span></div>
-      <div class="layer-summary">${layerCards}</div>
-      <div class="sec-title">快速操作</div>
-      <div class="row" style="gap:10px">
-        <button class="btn btn-primary grow" data-go="fridge">🥬 冰箱食材库</button>
-        <button class="btn btn-ghost grow" data-go="recipes">🍳 看食谱</button>
-      </div>
-      <div class="row" style="gap:10px;margin-top:8px">
-        <button class="btn btn-ghost grow" data-go="restock">📋 补货清单</button>
-        <button class="btn btn-ghost grow" data-go="device">⚙️ 设备管理</button>
-      </div>`;
+      <div class="sec-title">分区总览 <span class="more">点击卡片查看食材</span></div>
+      <div class="layer-summary">${layerCards}</div>`;
   }
 
   // 手机端冰箱食材库：下单同步后可直接查看新入库食材
   function pageFridge() {
     const urgent = ITEMS.filter(i => i.remainingDays <= 2).length;
-    const layers = LAYERS.map((layer, idx) => {
+    const layers = LAYERS.map((layer) => {
       const its = ITEMS.filter(i => i.layer === layer);
-      const temp = ['冷藏保鲜 · 2~6℃', '冷藏保鲜 · 2~6℃', '冷藏保鲜 · 0~4℃', '果蔬保湿 · 4~8℃'][idx];
-      const warn = its.some(i => i.remainingDays <= 2);
+      const meta = LAYER_META[layer];
       return `<div class="fd-layer">
-        <div class="fd-layer-head"><h4>${['❄️','🧊','🫧','🥬'][idx]} ${esc(layer)}</h4><span class="fd-temp">${temp} · ${its.length} 件</span></div>
+        <div class="fd-layer-head"><h4>${layerIcon(layer)} ${esc(layer)}</h4><span class="fd-temp">${meta.temp} · ${its.length} 件</span></div>
         <div class="fd-list">
           ${its.map(i => `<div class="fd-item ${i.freshness}">
             <span class="fd-emoji">${i.icon}</span>
             <div class="fd-info">
-              <div class="fd-name">${esc(i.name)} <span class="pill-tag ${i.freshness}">${FRESHNESS[i.freshness].label}</span></div>
+              <div class="fd-name">${esc(i.name)} <span class="pill-tag ${i.freshness}">${i.remainingDays === 0 ? '已过期' : FRESHNESS[i.freshness].label}</span></div>
               <div class="fd-meta">${esc(i.purchaseDate)} 购买 · 保质至 ${esc(i.expiryDate)} · ${i.quantity}${esc(i.unit)}</div>
             </div>
-            <div class="fd-days ${i.freshness}"><b>${i.remainingDays}</b><small>天</small></div>
+            <div class="fd-days ${i.freshness}"><b>${i.remainingDays === 0 ? '!' : i.remainingDays}</b><small>${i.remainingDays === 0 ? '过期' : '天'}</small></div>
           </div>`).join('') || '<div class="muted" style="padding:8px">该层暂无食材</div>'}
         </div>
       </div>`;
@@ -139,11 +157,14 @@
         <h2>🥬 冰箱食材库</h2>
         <p>共 ${ITEMS.length} 件食材 · ${urgent} 件需关注 · 手机下单后自动同步入库</p>
       </div>
-      <button class="add-entry" data-action="add-open">＋ 添加食材 <span style="opacity:.7">· 手动 / 语音 / 拍照小票识别</span></button>
+      <button class="ai-entry" data-action="ai-entry-open" style="margin-bottom:12px">
+        <div class="ai-entry-top"><span class="ai-orb">✦</span><div class="grow"><h4>AI 一键录入食材</h4><p>说一句话 / 拍小票，自动识别并入库</p></div><span class="ai-arrow">›</span></div>
+      </button>
+      <button class="add-entry" data-action="add-open">＋ 手动添加食材 <span style="opacity:.7">· 手动 / 语音 / 拍照小票识别</span></button>
       <div class="temp-banner">
         <span class="temp-chip"><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:4px"></i>绿 = 新鲜</span>
-        <span class="temp-chip"><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--yellow);margin-right:4px"></i>黄 = 临期 2 天</span>
-        <span class="temp-chip warn"><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:4px"></i>红 = 临期 1 天 / 过期</span>
+        <span class="temp-chip"><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--yellow);margin-right:4px"></i>黄 = 还剩 2 天</span>
+        <span class="temp-chip warn"><i style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-right:4px"></i>红 = 还剩 1 天 / 已过期</span>
       </div>
       ${layers}
       <div class="al-foot">剩余天数与新鲜度由冰箱食材库同源给出，App 端不重算</div>`;
@@ -274,7 +295,7 @@
       <div class="setting-row"><span class="sr-ico">📶</span><div><div class="sr-title">Wi-Fi 连接</div><div class="sr-sub">${esc(d.wifi)} · 已配网</div></div><button class="mini-btn" data-action="go-pairing">重新配网</button></div>
       <div class="setting-row"><span class="sr-ico">📡</span><div><div class="sr-title">NFC 绑定</div><div class="sr-sub">${d.nfcBound ? '已绑定 · 碰一碰可用' : '未绑定 · 请靠近冰箱感应区'}</div></div><div class="switch ${d.nfcBound ? 'on' : ''}" data-action="toggle-nfc"></div></div>
       <div class="setting-row"><span class="sr-ico">⚙️</span><div><div class="sr-title">固件版本</div><div class="sr-sub">${esc(d.firmware)} · ${d.firmwareLatest ? '已是最新版本' : '有可用更新'}</div></div><span class="pill-tag green">P0 只读</span></div>
-      <div class="setting-row"><span class="sr-ico">🔄</span><div><div class="sr-title">层分区设置</div><div class="sr-sub">固定四层：上层 / 中层 / 下层 / 果蔬抽屉</div></div><span class="pill-tag gray">固定</span></div>
+      <div class="setting-row"><span class="sr-ico">🔄</span><div><div class="sr-title">层分区设置</div><div class="sr-sub">五大分区：上层 / 中层 / 下层 / 果蔬抽屉 / 冷冻室</div></div><span class="pill-tag gray">固定</span></div>
       <button class="btn btn-ghost btn-block" data-action="simulate-nfc" style="margin-top:12px">📲 模拟 NFC 碰一碰</button>`;
   }
 
@@ -355,7 +376,7 @@
         <div class="ck-head">
           <div class="ck-ok">✓</div>
           <div class="grow"><h3>下单成功</h3><p>食材已自动同步到冰箱食材库</p></div>
-          <button class="al-close" data-action="close-checkout" aria-label="关闭">✕</button>
+          <button class="al-close" data-action="close-checkout" aria-label="关闭">${ICON.x}</button>
         </div>
         <div class="ck-list">
           ${synced.map(i => `<div class="ck-row">
@@ -436,7 +457,7 @@
         <div class="ai-modal-head">
           <span class="ai-orb">✦</span>
           <div class="grow"><h3>AI 智能配菜</h3><p>告诉我今天想吃什么，帮你整理冰箱</p></div>
-          <button class="al-close" data-action="close-ai" aria-label="关闭">✕</button>
+          <button class="al-close" data-action="close-ai" aria-label="关闭">${ICON.x}</button>
         </div>
         <div class="ai-input-row">
           <input id="ai-input" class="ai-input" placeholder="随便说想吃什么，如：可乐鸡翅、减脂餐…" />
@@ -470,7 +491,7 @@
         <div class="ai-modal-head">
           <span class="ai-orb">✦</span>
           <div class="grow"><h3>AI 配菜结果</h3><p>${mode === 'smart' ? '没找到对应菜名，按冰箱现有食材为你智能推荐' : mode === 'keyword' ? '已理解你的需求，智能匹配到这道菜' : '已识别菜名，根据冰箱食材库分析完成'}</p></div>
-          <button class="al-close" data-action="close-ai" aria-label="关闭">✕</button>
+          <button class="al-close" data-action="close-ai" aria-label="关闭">${ICON.x}</button>
         </div>
         <div class="ai-dish"><span class="ai-dish-emoji">${recipe.emoji}</span><div><h4>${esc(recipe.name)}</h4><p>⏱ ${recipe.minutes} 分钟 · ${recipe.steps.length} 步完成</p></div></div>
         ${expiringTip}
@@ -488,24 +509,23 @@
   // 点击「四层分区总览」的某一层，弹出该层食材详情
   function showAppLayerModal(layer) {
     const items = ITEMS.filter(i => i.layer === layer);
-    const idx = LAYERS.indexOf(layer);
-    const temp = ['冷藏保鲜 · 2~6℃', '冷藏保鲜 · 2~6℃', '冷藏保鲜 · 0~4℃', '果蔬保湿 · 4~8℃'][idx];
+    const meta = LAYER_META[layer] || { icon: '🥬', temp: '' };
     modalRoot.innerHTML = `<div class="modal-overlay" data-action="close-modal">
       <div class="modal-card app-layer-modal" data-stop="1">
         <div class="modal-head">
-          <div class="modal-icon">${['❄️','🧊','🫧','🥬'][idx]}</div>
-          <div class="grow"><h3>${esc(layer)}</h3><p>${temp} · 共 ${items.length} 件食材</p></div>
-          <button class="al-close" data-action="close-app-layer" aria-label="关闭">✕</button>
+          <div class="modal-icon">${layerIcon(layer)}</div>
+          <div class="grow"><h3>${esc(layer)}</h3><p>${meta.temp} · 共 ${items.length} 件食材</p></div>
+          <button class="al-close" data-action="close-app-layer" aria-label="关闭">${ICON.x}</button>
         </div>
         <div class="al-list">
           ${items.map(i => `<div class="al-row ${i.freshness}">
             <span class="al-emoji">${i.icon}</span>
             <div class="al-info">
-              <div class="al-name">${esc(i.name)} <span class="pill-tag ${i.freshness}">${FRESHNESS[i.freshness].label}</span></div>
+              <div class="al-name">${esc(i.name)} <span class="pill-tag ${i.freshness}">${i.remainingDays === 0 ? '已过期' : FRESHNESS[i.freshness].label}</span></div>
               <div class="al-meta">${esc(i.purchaseDate)} 购买 · 保质至 ${esc(i.expiryDate)} · ${i.quantity}${esc(i.unit)}</div>
               <div class="al-bar"><span style="width:${i.freshPct}%;background:${FRESHNESS[i.freshness].color}"></span></div>
             </div>
-            <div class="al-days ${i.freshness}"><b>${i.remainingDays}</b><small>天</small></div>
+            <div class="al-days ${i.freshness}"><b>${i.remainingDays === 0 ? '!' : i.remainingDays}</b><small>${i.remainingDays === 0 ? '过期' : '天'}</small></div>
           </div>`).join('')}
         </div>
         <div class="al-foot">剩余天数与新鲜度由冰箱食材库同源给出，App 端不重算</div>
@@ -519,13 +539,13 @@
         <div class="modal-head">
           <div class="modal-icon">📶</div>
           <div class="grow"><h3>重新配网指引</h3><p>按以下步骤完成设备联网</p></div>
-          <button class="al-close" data-action="close-app-layer" aria-label="关闭">✕</button>
+          <button class="al-close" data-action="close-app-layer" aria-label="关闭">${ICON.x}</button>
         </div>
         <div class="pair-guide">
           <div class="pg-step"><span class="pg-num">1</span><span>长按冰箱屏幕电源键 3 秒，屏幕亮起后进入配网。</span></div>
           <div class="pg-step"><span class="pg-num">2</span><span>用手机扫描屏幕二维码，连接「鲜知」配网热点，输入家庭 Wi-Fi 密码。</span></div>
           <div class="pg-step"><span class="pg-num">3</span><span>用手机背部靠近冰箱右下角 NFC 感应区，完成设备绑定。</span></div>
-          <div class="pg-step"><span class="pg-num">4</span><span>四层分区（上层 / 中层 / 下层 / 果蔬抽屉）初始化完成。</span></div>
+          <div class="pg-step"><span class="pg-num">4</span><span>五大分区（上层 / 中层 / 下层 / 果蔬抽屉 / 冷冻室）初始化完成。</span></div>
         </div>
         <div class="modal-actions"><button class="btn btn-primary btn-block" data-action="close-app-layer">知道了</button></div>
       </div>
@@ -541,7 +561,7 @@
         <div class="modal-head">
           <div class="modal-icon">${r.emoji}</div>
           <div class="grow"><h3>${esc(r.name)}</h3><p>⏱ ${r.minutes} 分钟 · AI 推荐做法</p></div>
-          <button class="al-close" data-action="close-app-layer" aria-label="关闭">✕</button>
+          <button class="al-close" data-action="close-app-layer" aria-label="关闭">${ICON.x}</button>
         </div>
         <div class="pair-guide">
           ${r.steps.map((s, i) => `<div class="pg-step"><span class="pg-num">${i+1}</span><span>${esc(s)}</span></div>`).join('')}
@@ -559,7 +579,7 @@
         <div class="modal-head">
           <div class="modal-icon" style="background:linear-gradient(135deg,#3DBE6B,#0E7C3A);color:#fff">朴</div>
           <div class="grow"><h3>去朴朴超市采购</h3><p>清单已同步 · 共 ${pending.length} 项待补</p></div>
-          <button class="al-close" data-action="close-app-layer" aria-label="关闭">✕</button>
+          <button class="al-close" data-action="close-app-layer" aria-label="关闭">${ICON.x}</button>
         </div>
         <div class="pupu-tip">点击下方按钮打开朴朴超市，买完回来点「标记已补齐」，食材会自动加入冰箱库、并从补货清单中移除，只显示一次、实时更新。</div>
         ${pending.length ? `<div class="ck-list">${pending.map(r => `<div class="ck-row">
@@ -616,6 +636,124 @@
     toast(`已补齐 ${pending.length} 项并同步冰箱食材库`);
   }
 
+  // ============ AI 一键录入食材：自然语言解析成食材清单 ============
+  // 词库：常见食材 → 默认单位 / 保质天数（供解析与入库使用）
+  const AI_FOOD_DICT = [
+    { name: '鲜鸡蛋', unit: '枚', days: 10, alias: ['鸡蛋', '蛋', '土鸡蛋'] },
+    { name: '全脂牛奶', unit: '盒', days: 8, alias: ['牛奶', '纯牛奶'] },
+    { name: '原味酸奶', unit: '杯', days: 7, alias: ['酸奶'] },
+    { name: '吐司面包', unit: '袋', days: 7, alias: ['吐司', '面包'] },
+    { name: '切片奶酪', unit: '盒', days: 15, alias: ['奶酪', '芝士'] },
+    { name: '橙汁', unit: '瓶', days: 10, alias: ['橙汁', '果汁'] },
+    { name: '三文鱼', unit: '块', days: 4, alias: ['三文鱼', '鱼'] },
+    { name: '豆腐', unit: '盒', days: 5, alias: ['豆腐'] },
+    { name: '鸡胸肉', unit: '块', days: 3, alias: ['鸡胸肉', '鸡胸', '鸡肉'] },
+    { name: '香肠', unit: '根', days: 7, alias: ['香肠', '火腿肠'] },
+    { name: '西兰花', unit: '颗', days: 6, alias: ['西兰花', '花椰菜'] },
+    { name: '番茄', unit: '个', days: 5, alias: ['番茄', '西红柿'] },
+    { name: '红苹果', unit: '个', days: 12, alias: ['苹果', '红苹果'] },
+    { name: '胡萝卜', unit: '根', days: 10, alias: ['胡萝卜'] },
+    { name: '生菜', unit: '颗', days: 4, alias: ['生菜', '青菜'] },
+    { name: '蓝莓', unit: '盒', days: 6, alias: ['蓝莓'] },
+    { name: '柠檬', unit: '个', days: 12, alias: ['柠檬'] },
+    { name: '速冻水饺', unit: '袋', days: 90, alias: ['水饺', '速冻水饺', '饺子'] },
+    { name: '冰淇淋', unit: '盒', days: 90, alias: ['冰淇淋', '雪糕'] }
+  ];
+  // 解析「买了6个鸡蛋和2盒牛奶，放冷藏」这类句子
+  function parseAiFoodText(text) {
+    const s = String(text || '');
+    const found = [];
+    AI_FOOD_DICT.forEach(f => {
+      const alias = f.alias.find(a => s.includes(a));
+      if (!alias) return;
+      // 就近找数量：中文习惯「6个鸡蛋」（数量在别名前），其次「鸡蛋 2 盒」（数量在后）
+      let qty = 1, unit = f.unit;
+      const pos = s.indexOf(alias);
+      const before = s.slice(Math.max(0, pos - 4), pos);        // 别名前最多 4 字
+      const after = s.slice(pos + alias.length, pos + alias.length + 4); // 别名后最多 4 字
+      // 优先取紧挨别名前的「数字+单位」（如 6个|_鸡蛋）
+      const mBefore = before.match(/(\d+)\s*([个盒枚袋瓶根颗块份只])?\s*$/);
+      // 其次取紧挨别名后的「数字+单位」（如 鸡蛋|2盒）
+      const mAfter = after.match(/^\s*(\d+)\s*([个盒枚袋瓶根颗块份只])?/);
+      if (mBefore && mBefore[1]) { qty = Math.max(1, Math.min(99, parseInt(mBefore[1], 10))); if (mBefore[2]) unit = mBefore[2]; }
+      else if (mAfter && mAfter[1]) { qty = Math.max(1, Math.min(99, parseInt(mAfter[1], 10))); if (mAfter[2]) unit = mAfter[2]; }
+      let layer = defaultLayerForFood(f.name);
+      if (/冷冻|冻层/.test(s) || /冻/.test(f.name)) layer = '冷冻室';
+      else if (/果蔬|蔬菜层/.test(s)) layer = '果蔬抽屉';
+      else if (/上层/.test(s)) layer = '冷藏室上层';
+      else if (/下层/.test(s)) layer = '冷藏室下层';
+      else if (/中层/.test(s)) layer = '冷藏室中层';
+      found.push({ name: f.name, qty, unit, layer, days: f.days });
+    });
+    return found;
+  }
+
+  // AI 一键录入弹窗
+  function showAiEntryModal() {
+    modalRoot.innerHTML = `<div class="modal-overlay" data-action="close-modal">
+      <div class="modal-card" data-stop="1">
+        <div class="modal-head">
+          <div class="modal-icon" style="background:linear-gradient(145deg,#B9F5D0,#6EE7A0);color:#0E7C3A">${ICON.spark}</div>
+          <div class="grow"><h3>AI 一键录入食材</h3><p>用一句话说出买了什么，自动识别入库</p></div>
+          <button class="al-close" data-action="close-app-layer" aria-label="关闭">${ICON.x}</button>
+        </div>
+        <div class="ai-input-row">
+          <input id="ai-food-input" class="ai-input" placeholder="例如：买了6个鸡蛋和2盒牛奶放冷藏" />
+          <button class="btn btn-primary" data-action="ai-entry-parse">识别</button>
+        </div>
+        <div class="ai-chips">
+          <button class="ai-chip" data-action="ai-entry-fill" data-q="买了6个鸡蛋和2盒牛奶，放冷藏中层">6个鸡蛋+2盒牛奶</button>
+          <button class="ai-chip" data-action="ai-entry-fill" data-q="冷冻室加了1袋速冻水饺和2盒冰淇淋">冷冻水饺+冰淇淋</button>
+          <button class="ai-chip" data-action="ai-entry-fill" data-q="买了3个番茄、1颗西兰花和5个鸡蛋">番茄西兰花鸡蛋</button>
+        </div>
+        <div id="ai-entry-result"></div>
+        <div class="ai-footnote" style="margin-top:10px">AI 根据食材词库识别，结果可确认后再入库</div>
+      </div>
+    </div>`;
+    setTimeout(() => { const el = $('#ai-food-input'); if (el) el.focus(); }, 50);
+  }
+  function aiEntryParse(text) {
+    const parsed = parseAiFoodText(text);
+    const box = $('#ai-entry-result');
+    if (!box) return;
+    if (!parsed.length) {
+      box.innerHTML = '<div class="ai-tip" style="margin:0">没识别到常见食材，试试「6个鸡蛋」「2盒牛奶」这样的说法，或用「手动添加」。</div>';
+      return;
+    }
+    box.innerHTML = `<div class="ai-sec" style="margin-top:12px"><h5>识别到 ${parsed.length} 样食材，确认后一键入库</h5>
+      <div class="ck-list" style="max-height:34vh">
+        ${parsed.map((p, i) => `<div class="ck-row">
+          <span class="ck-emoji">${iconForFood(p.name)}</span>
+          <div class="grow"><div class="ck-name">${esc(p.name)}</div><div class="ck-meta">${esc(p.layer)} · 保质 ${p.days} 天</div></div>
+          <span class="ck-days">${p.qty}${esc(p.unit)}</span>
+        </div>`).join('')}
+      </div>
+      <button class="btn btn-primary btn-block" data-action="ai-entry-confirm">✓ 一键入库这 ${parsed.length} 样</button>
+    </div>`;
+    box.dataset.parsed = JSON.stringify(parsed);
+  }
+  function aiEntryConfirm() {
+    const box = $('#ai-entry-result');
+    if (!box || !box.dataset.parsed) return;
+    const parsed = JSON.parse(box.dataset.parsed);
+    parsed.forEach(p => {
+      const existing = ITEMS.find(i => i.name === p.name);
+      if (existing) { existing.quantity += p.qty; existing.source = 'AI 录入'; }
+      else {
+        const exp = new Date(TODAY); exp.setDate(exp.getDate() + p.days);
+        const iso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        ITEMS.push({
+          id: 'it-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+          name: p.name, icon: iconForFood(p.name), layer: p.layer,
+          purchaseDate: TODAY, expiryDate: iso(exp), remainingDays: p.days,
+          freshness: 'green', freshPct: 95, quantity: p.qty, unit: p.unit, source: 'AI 录入'
+        });
+      }
+    });
+    closeModal(); renderApp();
+    toast(`AI 已录入 ${parsed.length} 样食材到冰箱`);
+  }
+
   // 添加食材弹窗：手动 / 语音 / 拍照识别小票
   let addMode = 'manual';
   function showAddModal() {
@@ -647,7 +785,7 @@
         <div class="modal-head">
           <div class="modal-icon">＋</div>
           <div class="grow"><h3>添加食材</h3><p>手动录入 / 语音 / 拍照识别小票</p></div>
-          <button class="al-close" data-action="close-app-layer" aria-label="关闭">✕</button>
+          <button class="al-close" data-action="close-app-layer" aria-label="关闭">${ICON.x}</button>
         </div>
         <div class="add-tabs">
           <button class="add-tab ${addMode==='manual'?'active':''}" data-action="add-tab" data-mode="manual">✍️ 手动</button>
@@ -764,6 +902,10 @@
       if (a === 'pupu-open-app') { openPupuApp(); return; }
       if (a === 'pupu-mark') { pupuMarkAll(); return; }
       if (a === 'add-open') { showAddModal(); return; }
+      if (a === 'ai-entry-open') { showAiEntryModal(); return; }
+      if (a === 'ai-entry-parse') { aiEntryParse(($('#ai-food-input') && $('#ai-food-input').value) || ''); return; }
+      if (a === 'ai-entry-fill') { const inp = $('#ai-food-input'); if (inp) { inp.value = actionEl.dataset.q; aiEntryParse(inp.value); } return; }
+      if (a === 'ai-entry-confirm') { aiEntryConfirm(); return; }
       if (a === 'add-tab') { addMode = actionEl.dataset.mode; renderAddModal(); return; }
       if (a === 'add-save') { addSave(); return; }
       if (a === 'ai-view-steps') { showAiSteps(); return; }

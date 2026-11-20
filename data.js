@@ -2,12 +2,21 @@
  * 所有剩余天数 / 新鲜度由「屏幕端同源数据」统一给出，App 端只读取、不重算。
  */
 
-const LAYERS = ['冷藏室上层', '冷藏室中层', '冷藏室下层', '果蔬抽屉'];
+const LAYERS = ['冷藏室上层', '冷藏室中层', '冷藏室下层', '果蔬抽屉', '冷冻室'];
+
+// 每层的展示元数据：图标、温度说明（供首页/食材库/弹窗统一使用）
+const LAYER_META = {
+  '冷藏室上层': { icon: '❄️', temp: '冷藏保鲜 · 2~6℃' },
+  '冷藏室中层': { icon: '🧊', temp: '冷藏保鲜 · 2~6℃' },
+  '冷藏室下层': { icon: '🫧', temp: '冷藏保鲜 · 0~4℃' },
+  '果蔬抽屉':   { icon: '🥬', temp: '果蔬保湿 · 4~8℃' },
+  '冷冻室':     { icon: '🧊', temp: '冷冻保存 · -18℃' }
+};
 
 const FRESHNESS = {
   green: { key: 'green', label: '新鲜', color: '#1DB954', soft: '#E8F7EE', note: '绿 = 新鲜' },
-  yellow: { key: 'yellow', label: '临期 2 天', color: '#F2B705', soft: '#FFF6DA', note: '黄 = 临期 2 天' },
-  red: { key: 'red', label: '临期 1 天 / 过期', color: '#E5484D', soft: '#FDECEC', note: '红 = 临期 1 天/过期' }
+  yellow: { key: 'yellow', label: '还剩 2 天', color: '#F2B705', soft: '#FFF6DA', note: '黄 = 还剩 2 天' },
+  red: { key: 'red', label: '还剩 1 天', color: '#E5484D', soft: '#FDECEC', note: '红 = 还剩 1 天 / 已过期' }
 };
 
 // 参考日：2025-06-06（用于演示，剩余天数为同源预置值，不做前端计算）
@@ -29,7 +38,10 @@ const ITEMS = [
   { id: 'it-13', name: '生菜', icon: '🥬', layer: '果蔬抽屉', purchaseDate: '2025-06-04', expiryDate: '2025-06-08', remainingDays: 2, freshness: 'yellow', freshPct: 42, quantity: 1, unit: '颗', source: '手动录入' },
   { id: 'it-14', name: '香肠', icon: '🌭', layer: '冷藏室中层', purchaseDate: '2025-06-02', expiryDate: '2025-06-08', remainingDays: 2, freshness: 'yellow', freshPct: 38, quantity: 2, unit: '根', source: '手动录入' },
   { id: 'it-15', name: '蓝莓', icon: '🫐', layer: '果蔬抽屉', purchaseDate: '2025-06-05', expiryDate: '2025-06-12', remainingDays: 6, freshness: 'green', freshPct: 76, quantity: 2, unit: '盒', source: 'NFC 碰一碰' },
-  { id: 'it-16', name: '橙汁', icon: '🧃', layer: '冷藏室上层', purchaseDate: '2025-06-04', expiryDate: '2025-06-13', remainingDays: 7, freshness: 'green', freshPct: 82, quantity: 1, unit: '瓶', source: '手动录入' }
+  { id: 'it-16', name: '橙汁', icon: '🧃', layer: '冷藏室上层', purchaseDate: '2025-06-04', expiryDate: '2025-06-13', remainingDays: 7, freshness: 'green', freshPct: 82, quantity: 1, unit: '瓶', source: '手动录入' },
+  { id: 'it-17', name: '速冻水饺', icon: '🥟', layer: '冷冻室', purchaseDate: '2025-05-20', expiryDate: '2025-08-20', remainingDays: 75, freshness: 'green', freshPct: 95, quantity: 1, unit: '袋', source: '手动录入' },
+  { id: 'it-18', name: '冷冻西兰花', icon: '🥦', layer: '冷冻室', purchaseDate: '2025-05-25', expiryDate: '2025-08-25', remainingDays: 80, freshness: 'green', freshPct: 92, quantity: 1, unit: '袋', source: 'NFC 碰一碰' },
+  { id: 'it-19', name: '冰淇淋', icon: '🍦', layer: '冷冻室', purchaseDate: '2025-06-01', expiryDate: '2025-09-01', remainingDays: 87, freshness: 'green', freshPct: 98, quantity: 2, unit: '盒', source: '手动录入' }
 ];
 
 const ITEMS_INITIAL = ITEMS.map(x => ({ ...x }));
@@ -158,11 +170,13 @@ function iconForFood(name) {
     '三文鱼':'🐟','鱼':'🐟','西兰花':'🥦','番茄':'🍅','西红柿':'🍅','面包':'🍞','吐司面包':'🍞',
     '豆腐':'🧈','鸡胸肉':'🍗','鸡肉':'🍗','奶酪':'🧀','苹果':'🍎','红苹果':'🍎','胡萝卜':'🥕',
     '生菜':'🥬','青菜':'🥬','香肠':'🌭','蓝莓':'🫐','橙汁':'🧃','柠檬':'🍋','土豆':'🥔','青椒':'🫑',
-    '蒜':'🧄','葱':'🌿','鸡翅':'🍗','可乐':'🥤','糖':'🍬','姜':'🫚','米饭':'🍚','燕麦':'🌾'
+    '蒜':'🧄','葱':'🌿','鸡翅':'🍗','可乐':'🥤','糖':'🍬','姜':'🫚','米饭':'🍚','燕麦':'🌾',
+    '速冻水饺':'🥟','水饺':'🥟','冷冻':'🧊','冰淇淋':'🍦','雪糕':'🍦','汤圆':'🍡'
   };
   return map[name] || '🥗';
 }
 function defaultLayerForFood(name) {
+  if (/冻|冰|雪糕|冰淇淋|水饺|汤圆/.test(name)) return '冷冻室';
   if (/奶|酸奶|蛋|奶酪|吐司|面包|橙汁/.test(name)) return '冷藏室上层';
   if (/鱼|肉|鸡|豆腐|香肠/.test(name)) return '冷藏室下层';
   if (/番茄|苹果|胡萝卜|生菜|蓝莓|柠檬|西兰花|土豆|青椒|蒜|葱|姜/.test(name)) return '果蔬抽屉';
