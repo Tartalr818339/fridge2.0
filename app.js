@@ -574,45 +574,13 @@
     </div>`;
   }
 
-  // 打开朴朴 App：移动端优先用 URL Scheme 唤起，失败回退网页
-  // 朴朴未公开官方 scheme，这里用常见候选依次尝试；若都未唤起则打开网页版
+  // 打开朴朴 App：跳转朴朴官方 deeplink 页
+  // 已安装 App 会自动唤起，未安装则引导下载（由朴朴官方页处理）
   function openPupuApp() {
-    const webUrl = 'https://www.pupumarket.com/';
-    // 候选 scheme（不同 App 版本可能不同）
-    const schemes = [
-      'pupumart://',
-      'pupumall://',
-      'pupu://'
-    ];
-    try {
-      const t = Date.now();
-      let opened = false;
-      const onVis = () => { if (document.hidden) opened = true; };
-      document.addEventListener('visibilitychange', onVis);
-
-      // 依次尝试候选 scheme
-      schemes.forEach((s, idx) => {
-        setTimeout(() => {
-          if (opened) return;
-          const f = document.createElement('iframe');
-          f.style.display = 'none';
-          f.src = s;
-          document.body.appendChild(f);
-          setTimeout(() => { try { f.remove(); } catch (e) {} }, 600);
-        }, idx * 450);
-      });
-
-      // 2.4s 后仍未离开页面 → 判定未安装/未唤起，回退网页
-      setTimeout(() => {
-        document.removeEventListener('visibilitychange', onVis);
-        if (!opened && !document.hidden) {
-          window.open(webUrl, '_blank');
-        }
-      }, 2400);
-      toast('正在尝试打开朴朴 App…');
-    } catch (e) {
-      window.open(webUrl, '_blank');
-    }
+    const url = 'https://ma.pupumall.com/deeplink';
+    toast('正在打开朴朴…');
+    try { window.location.href = url; }
+    catch (e) { window.open(url, '_blank'); }
   }
 
   // 标记朴朴已补齐：待补项全部入库并从清单移除（去重，只显示一次）
