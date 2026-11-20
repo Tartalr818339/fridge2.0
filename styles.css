@@ -120,7 +120,8 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .temp-banner{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
 .temp-chip{font-size:14px;font-weight:700;padding:6px 11px;border-radius:999px;background:var(--green-soft);color:var(--green-deep)}
 .temp-chip.warn{background:var(--red-soft);color:var(--red-deep)}
-.fd-layer{margin-bottom:16px}
+.fd-layer{margin-bottom:16px;scroll-margin-top:10px;border-radius:14px;transition:box-shadow .3s}
+.fd-layer.focused{box-shadow:0 0 0 2px var(--green),0 6px 20px rgba(29,185,84,.14);padding:8px;margin:-8px}
 .fd-layer-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}
 .fd-layer-head h4{font-size:14px;display:inline-flex;align-items:center;gap:5px}
 .fd-layer-head h4 svg{color:var(--green-deep)}
@@ -132,7 +133,7 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .fd-item.red{border-left-color:var(--red);background:var(--red-soft)}
 .fd-emoji{width:38px;height:38px;border-radius:9px;background:var(--paper);display:grid;place-items:center;font-size:22px;flex:none}
 .fd-info{flex:1;min-width:0}
-.fd-name{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.fd-name{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .fd-meta{font-size:14px;color:#6B7C72;margin-top:3px}
 .fd-days{text-align:center;line-height:1;min-width:30px}
 .fd-days b{font-size:19px;font-weight:800;display:block}
@@ -154,7 +155,7 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .nfc-hero{text-align:center;padding:8px 0 16px}
 .nfc-success{width:62px;height:62px;border-radius:50%;background:var(--green-soft);color:var(--green-deep);display:grid;place-items:center;font-size:30px;margin:0 auto 10px}
 .nfc-hero h2{font-size:18px}
-.nfc-hero p{font-size:13px;color:var(--muted);margin-top:4px}
+.nfc-hero p{font-size:14px;color:#6B7C72;margin-top:4px}
 .result-card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:12px}
 .result-card-head{padding:12px 14px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--line)}
 .result-card-head .rc-icon{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:17px;background:var(--green-soft)}
@@ -167,7 +168,7 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .mini-line .ml-days{font-size:13px;font-weight:700}
 
 /* 食谱 */
-/* AI 智能配菜入口 */
+/* 配菜入口 */
 .ai-entry{display:block;width:100%;box-sizing:border-box;background:linear-gradient(120deg,#123D28,#196B43 60%,#0E7C3A);color:#fff;border-radius:18px;padding:15px;margin:0 0 14px;position:relative;overflow:hidden;cursor:pointer;text-align:left;box-shadow:0 10px 26px rgba(14,124,58,.28);transition:.2s}
 .ai-entry:active{transform:translateY(-2px);box-shadow:0 14px 32px rgba(14,124,58,.36)}
 .ai-entry::after{content:"";position:absolute;right:-26px;top:-26px;width:110px;height:110px;border:16px solid rgba(255,255,255,.06);border-radius:50%}
@@ -178,7 +179,7 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .ai-arrow{margin-left:auto;font-size:22px;color:#C7EED6}
 .ai-entry-chips{display:flex;gap:6px;margin-top:11px;position:relative;flex-wrap:wrap}
 .ai-entry-chips span{font-size:13px;color:#DFF5E7;background:rgba(255,255,255,.13);padding:4px 9px;border-radius:999px}
-/* AI 弹窗 */
+/* 配菜弹窗 / 食材录入 */
 .ai-modal{max-width:400px}
 .ai-modal-head{display:flex;gap:11px;align-items:center;margin-bottom:16px}
 .ai-modal-head h3{font-size:16px}
@@ -230,7 +231,7 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .ing-check{width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
 .ing-check.have{background:var(--green-soft);color:var(--green-deep)}
 .ing-check.miss{background:#F1F3F2;color:var(--muted)}
-.ing-name{flex:1;font-size:13px}
+.ing-name{flex:1;font-size:14px}
 .ing-flag{font-size:13px;font-weight:700;padding:3px 7px;border-radius:6px}
 .ing-flag.have{background:var(--green-soft);color:var(--green-deep)}
 .ing-flag.miss{background:var(--red-soft);color:var(--red-deep)}
@@ -245,7 +246,7 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .r-check{width:28px;height:28px;border-radius:6px;border:1.5px solid #C6D2CB;display:grid;place-items:center;flex:none;font-size:13px;font-weight:700}
 .r-check.on{background:var(--green);border-color:var(--green);color:#fff}
 .r-emoji{font-size:20px}
-.r-name{font-size:13px;font-weight:600}
+.r-name{font-size:14px;font-weight:600}
 .r-meta{font-size:13px;color:var(--muted);margin-top:2px}
 .r-status{font-size:13px;font-weight:700;padding:3px 7px;border-radius:6px;white-space:nowrap}
 .r-status.done{background:var(--green-soft);color:var(--green-deep)}
@@ -265,7 +266,7 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .cart-top-alert{background:var(--green-soft);border-radius:12px;padding:11px 12px;margin-bottom:12px;font-size:13px;color:var(--green-deep)}
 .cart-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:9px}
 .cart-row .cr-emoji{font-size:22px}
-.cart-row .cr-name{font-size:13px;font-weight:600}
+.cart-row .cr-name{font-size:14px;font-weight:600}
 .cart-inline{font-size:13px;color:var(--green-deep);background:var(--green-soft);padding:3px 7px;border-radius:6px;margin-top:3px;display:inline-block}
 .qty-ctrl{display:flex;align-items:center;gap:8px}
 .qty-ctrl button{width:30px;height:30px;border-radius:7px;background:#F0F4F1;font-weight:700;font-size:13px}
@@ -320,7 +321,7 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .layer-mini .lm-tags{flex:none;min-height:0;overflow:hidden}
 .layer-mini .lm-open{flex:none;margin-top:auto;padding-top:4px}
 
-/* ============ 临期天数筛选：单行分段控制器 ============ */
+/* ============ 到期天数筛选：单行分段控制器 ============ */
 .expiry-tabs{display:flex;gap:2px;margin-top:9px;padding:4px;border-radius:12px;background:rgba(255,255,255,.5);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .expiry-tabs::-webkit-scrollbar{display:none}
 .expiry-tab{flex:none;min-width:64px;min-height:44px;padding:6px 10px;border-radius:9px;background:transparent;color:#7A5C00;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;transition:.18s}
@@ -347,8 +348,8 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .add-entry{width:100%;min-height:46px;border:1.5px dashed var(--green);background:var(--green-soft);color:var(--green-deep);border-radius:13px;padding:13px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:14px}
 
 /* ============ 添加食材弹窗 ============ */
-.add-tabs{display:flex;gap:6px;margin-bottom:14px}
-.add-tab{flex:1;padding:9px 4px;border-radius:10px;background:var(--paper);font-size:13px;font-weight:700;color:var(--ink-2)}
+.add-tabs{display:flex;gap:5px;margin-bottom:14px}
+.add-tab{flex:1;min-width:0;padding:9px 2px;border-radius:10px;background:var(--paper);font-size:12.5px;font-weight:700;color:var(--ink-2);white-space:nowrap}
 .add-tab.active{background:var(--green);color:#fff}
 .add-field{margin-bottom:11px}
 .add-field label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--ink-2)}

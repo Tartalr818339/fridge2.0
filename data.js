@@ -1,5 +1,5 @@
-/* 鲜知 FreshSense — P0 最小数据模型
- * 所有剩余天数 / 新鲜度由「屏幕端同源数据」统一给出，App 端只读取、不重算。
+/* 鲜知 FreshSense — 手机 App 数据模型
+ * 剩余天数与新鲜度随食材数据一起保存，App 端直接展示。
  */
 
 const LAYERS = ['冷藏室上层', '冷藏室中层', '冷藏室下层', '果蔬抽屉', '冷冻室'];
@@ -19,7 +19,7 @@ const FRESHNESS = {
   red: { key: 'red', label: '还剩 1 天', color: '#E5484D', soft: '#FDECEC', note: '红 = 还剩 1 天 / 已过期' }
 };
 
-// 参考日：2025-06-06（用于演示，剩余天数为同源预置值，不做前端计算）
+// 参考日：2025-06-06（演示数据中的剩余天数以此为准）
 const TODAY = '2025-06-06';
 
 const ITEMS = [
@@ -48,10 +48,10 @@ const ITEMS_INITIAL = ITEMS.map(x => ({ ...x }));
 
 const RESTOCK_ITEMS = [
   { id: 'rs-01', name: '鲜鸡蛋', suggestQty: 6, unit: '枚', source: '手动', status: '待补' },
-  { id: 'rs-02', name: '全脂牛奶', suggestQty: 1, unit: '盒', source: '临期自动', status: '待补' },
+  { id: 'rs-02', name: '全脂牛奶', suggestQty: 1, unit: '盒', source: '快到期提醒', status: '待补' },
   { id: 'rs-03', name: '面条', suggestQty: 2, unit: '包', source: '食谱缺料', status: '待补' },
   { id: 'rs-04', name: '柠檬', suggestQty: 3, unit: '个', source: '食谱缺料', status: '待补' },
-  { id: 'rs-05', name: '原味酸奶', suggestQty: 2, unit: '杯', source: '临期自动', status: '待补' }
+  { id: 'rs-05', name: '原味酸奶', suggestQty: 2, unit: '杯', source: '快到期提醒', status: '待补' }
 ];
 
 const RECIPES = [
@@ -75,8 +75,8 @@ const RECIPES = [
     steps: ['食材切块备用。', '水开下豆腐与蔬菜。', '小火煮 8 分钟，加盐调味。'] }
 ];
 
-// AI 智能配菜菜品库：含菜名、常见食材（用于匹配「想吃什么」）、分类标签
-// 每条记录用 tags 做语义匹配，ingredients 为「应有食材」，AI 再与冰箱库存比对
+// 配菜菜品库：含菜名、常见食材与分类标签
+// 用 tags 匹配「想吃什么」，ingredients 为应有食材，再与冰箱库存比对
 const AI_DISHES = [
   { name: '番茄炒蛋', emoji: '🍳', minutes: 15, tags: ['番茄', '鸡蛋', '蛋', '西红柿', '家常'], ingredients: ['鲜鸡蛋', '番茄', '葱'] },
   { name: '香煎三文鱼', emoji: '🐟', minutes: 20, tags: ['三文鱼', '鱼', '海鲜', '煎'], ingredients: ['三文鱼', '西兰花', '柠檬'] },
@@ -102,7 +102,7 @@ const DEVICE = {
   wifi: 'Home_5G'
 };
 
-// 商品 SKU → 食材名映射（App 内加购校验用）
+// 商品 SKU → 食材名映射（App 内加购提醒用）
 const PRODUCT_MAPPING = {
   'SKU-EGG-6': '鲜鸡蛋',
   'SKU-MILK-1L': '全脂牛奶',
@@ -122,7 +122,7 @@ const PRODUCTS = [
 ];
 
 // 下单入库预置：SKU → 放入层 / 数量 / 单位 / 保质天数 / 新鲜度条
-// 由屏幕端同源预置，App 下单时读取，剩余天数不自行推算
+// 下单入库预置：App 下单时读取对应食材的存放位置与保质天数
 const PURCHASE_PRESETS = {
   'SKU-EGG-6':    { layer: '冷藏室中层', qty: 6, unit: '枚', shelfDays: 10, freshPct: 100, icon: '🥚' },
   'SKU-MILK-1L':  { layer: '冷藏室中层', qty: 1, unit: '盒', shelfDays: 8,  freshPct: 100, icon: '🥛' },
@@ -132,7 +132,7 @@ const PURCHASE_PRESETS = {
   'SKU-SALMON-1': { layer: '冷藏室下层', qty: 1, unit: '块', shelfDays: 4,  freshPct: 100, icon: '🐟' }
 };
 
-// 根据下单 SKU 生成一条新入库食材（数据与屏幕端同源）
+// 根据下单 SKU 生成一条新入库食材
 function purchaseToItem(sku) {
   const p = PURCHASE_PRESETS[sku];
   const name = PRODUCT_MAPPING[sku];
@@ -159,8 +159,9 @@ const STATE = {
   cart: [],                // { sku, name, qty, fromRestockId }
   checked: new Set(),      // 补货清单勾选状态
   device: { ...DEVICE },
-  expiryDay: 1,            // 临期提醒当前选中的天数（1~7）
-  aiDish: null             // AI 智能配菜当前分析出的菜品
+  expiryDay: 1,            // 到期提醒当前选中的天数（0~7）
+  aiDish: null,            // 配菜分析当前选中的菜品
+  focusLayer: null         // 从首页分区进入食材库时定位的分区
 };
 
 /* ---------- 手动/语音/拍照 添加食材：名称 → 图标/默认层 ---------- */
@@ -183,7 +184,7 @@ function defaultLayerForFood(name) {
   return '冷藏室中层';
 }
 
-/* ---------- 同源校验：重复购买判定 ---------- */
+/* ---------- 重复购买判定 ---------- */
 // 命中：商品映射食材在冰箱存在，且新鲜度=绿，且剩余≥2天
 // 黄/红不提醒（反而引导补货）
 function checkDuplicate(sku) {
