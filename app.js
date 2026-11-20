@@ -568,10 +568,51 @@
         </div>`).join('')}</div>` : '<div class="muted" style="margin-bottom:12px">当前没有待补货商品 🎉</div>'}
         <div class="modal-actions">
           <button class="btn btn-ghost grow" data-action="pupu-mark" ${pending.length ? '' : 'disabled style="opacity:.5"'}>标记已补齐</button>
-          <a class="btn btn-primary grow" href="https://www.pupumart.com/" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;text-decoration:none">打开朴朴 ↗</a>
+          <button class="btn btn-primary grow" data-action="pupu-open-app">打开朴朴 App</button>
         </div>
       </div>
     </div>`;
+  }
+
+  // 打开朴朴 App：移动端优先用 URL Scheme 唤起，失败回退网页
+  // 朴朴未公开官方 scheme，这里用常见候选依次尝试；若都未唤起则打开网页版
+  function openPupuApp() {
+    const webUrl = 'https://www.pupumarket.com/';
+    // 候选 scheme（不同 App 版本可能不同）
+    const schemes = [
+      'pupumart://',
+      'pupumall://',
+      'pupu://'
+    ];
+    try {
+      const t = Date.now();
+      let opened = false;
+      const onVis = () => { if (document.hidden) opened = true; };
+      document.addEventListener('visibilitychange', onVis);
+
+      // 依次尝试候选 scheme
+      schemes.forEach((s, idx) => {
+        setTimeout(() => {
+          if (opened) return;
+          const f = document.createElement('iframe');
+          f.style.display = 'none';
+          f.src = s;
+          document.body.appendChild(f);
+          setTimeout(() => { try { f.remove(); } catch (e) {} }, 600);
+        }, idx * 450);
+      });
+
+      // 2.4s 后仍未离开页面 → 判定未安装/未唤起，回退网页
+      setTimeout(() => {
+        document.removeEventListener('visibilitychange', onVis);
+        if (!opened && !document.hidden) {
+          window.open(webUrl, '_blank');
+        }
+      }, 2400);
+      toast('正在尝试打开朴朴 App…');
+    } catch (e) {
+      window.open(webUrl, '_blank');
+    }
   }
 
   // 标记朴朴已补齐：待补项全部入库并从清单移除（去重，只显示一次）
@@ -753,6 +794,7 @@
       if (a === 'close-app-layer' || a === 'close-ai' || a === 'close-checkout') { closeModal(); return; }
       if (a === 'expiry-day') { STATE.expiryDay = +actionEl.dataset.day; renderApp(); return; }
       if (a === 'pupu-open') { showPupuModal(); return; }
+      if (a === 'pupu-open-app') { openPupuApp(); return; }
       if (a === 'pupu-mark') { pupuMarkAll(); return; }
       if (a === 'add-open') { showAddModal(); return; }
       if (a === 'add-tab') { addMode = actionEl.dataset.mode; renderAddModal(); return; }
