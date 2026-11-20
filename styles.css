@@ -59,12 +59,15 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .tb-status{pointer-events:auto;display:inline-flex;align-items:center;gap:6px;flex:none;min-height:34px;padding:5px 11px;border-radius:999px;font-size:13px;font-weight:700;background:var(--green-soft);color:var(--green-deep);transition:.25s}
 .tb-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
 .tb-dot.warn{background:var(--red)}
-.page-wrap{animation:pageIn .28s ease-out both}
-@keyframes pageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.page-wrap.entering{animation:pageIn .32s cubic-bezier(.2,.8,.2,1) both}
+@keyframes pageIn{from{opacity:0;transform:translateY(6px) scale(.995)}to{opacity:1;transform:none}}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.28s;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
 .app-tabbar{position:absolute;bottom:0;left:0;right:0;height:70px;background:rgba(255,255,255,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center;padding-bottom:8px;z-index:8}
 .tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:14px;color:#6B7C72;min-width:52px}
 .tab .tab-ico{font-size:19px;line-height:1}
 .tab.active{color:var(--green-deep);font-weight:700}
+.tab-add{width:52px;height:52px;min-height:52px;flex:none;border-radius:50%;background:linear-gradient(145deg,#1DB954,#0E7C3A);color:#fff;font-size:30px;font-weight:300;line-height:1;display:grid;place-items:center;box-shadow:0 8px 20px rgba(14,124,58,.35);transform:translateY(-14px);transition:.2s}
+.tab-add:active{transform:translateY(-10px) scale(.94)}
 
 /* App 通用 */
 .app-hero{background:linear-gradient(135deg,#123D28,#1B6B3C);color:#fff;border-radius:20px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
@@ -122,6 +125,27 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .al-days.yellow{color:var(--yellow-deep)}
 .al-days.red{color:var(--red-deep)}
 .al-foot{font-size:14px;color:#6B7C72;text-align:center;margin-top:10px}
+
+/* 首页冰箱剖面视图：按冷藏/冷冻分组，点开只看该区 */
+.fridge-view{border:1px solid var(--line);border-radius:18px;background:#fff;overflow:hidden}
+.fv-group+.fv-group{border-top:1px solid var(--line)}
+.fv-group.cold{background:linear-gradient(180deg,#fff,#F3F8FF)}
+.fv-group-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px 6px;font-size:14px;font-weight:800;color:var(--ink)}
+.fv-group-head span+span{font-size:13px;color:#6B7C72;font-weight:600}
+.fv-row{display:flex;align-items:center;gap:10px;width:100%;min-height:58px;padding:8px 14px;border-top:1px solid #F0F3F1;text-align:left}
+.fv-row:first-of-type{border-top:0}
+.fv-ico{width:30px;height:30px;border-radius:9px;background:var(--green-soft);color:var(--green-deep);display:grid;place-items:center;flex:none}
+.fv-group.cold .fv-ico{background:#E6F0FF;color:#2D6CB5}
+.fv-name{flex:1;min-width:0;font-size:14px;font-weight:700;display:flex;flex-direction:column}
+.fv-name small{font-size:12px;color:#6B7C72;font-weight:500;margin-top:2px}
+.fv-dots{display:flex;gap:3px;align-items:center;flex:none}
+.fv-dots i{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.fv-dots i.yellow{background:var(--yellow)}
+.fv-dots i.red{background:var(--red)}
+.fv-empty{font-size:12px;color:#9AA79F}
+.fv-count{font-size:13px;font-weight:700;color:var(--ink-2);flex:none;text-align:right}
+.fv-count em{display:block;font-size:12px;font-style:normal;color:var(--red-deep)}
+.fv-arrow{font-size:20px;color:#9AA79F;flex:none}
 
 /* 冰箱食材库（手机端） */
 .fridge-hero{background:linear-gradient(135deg,#123D28,#1B6B3C);color:#fff;border-radius:20px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
@@ -315,6 +339,12 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 @keyframes rise{from{transform:translateY(14px);opacity:.6}to{transform:none;opacity:1}}
 .modal-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:16px}
 .modal-icon{width:46px;height:46px;border-radius:14px;background:var(--green-soft);display:grid;place-items:center;font-size:24px;flex:none}
+.model-option{display:block;width:100%;text-align:left;border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin-bottom:8px;background:#fff}
+.model-option.active{border-color:var(--green);background:var(--green-soft)}
+.mo-name{display:block;font-size:14px;font-weight:800;color:var(--ink)}
+.mo-layers{display:block;font-size:12px;color:#6B7C72;margin-top:3px}
+.model-photo{display:block;text-align:center;border:1px dashed var(--green);border-radius:12px;padding:12px;color:var(--green-deep);font-size:14px;font-weight:700;margin-top:10px}
+#model-photo{display:none}
 .modal-head h3{font-size:16px}
 .modal-head p{font-size:13px;color:var(--muted);margin-top:2px}
 .dup-detail{background:var(--paper);border-radius:14px;padding:13px;margin-bottom:16px;font-size:13px;line-height:1.7;color:var(--ink-2)}
@@ -365,6 +395,11 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .add-tabs{display:flex;gap:5px;margin-bottom:14px}
 .add-tab{flex:1;min-width:0;padding:9px 2px;border-radius:10px;background:var(--paper);font-size:12.5px;font-weight:700;color:var(--ink-2);white-space:nowrap}
 .add-tab.active{background:var(--green);color:#fff}
+.input-with-mic{display:flex;gap:8px;align-items:center}
+.input-with-mic input{flex:1;min-width:0}
+.mic-btn{flex:none;width:44px;height:44px;border-radius:12px;background:var(--green-soft);color:var(--green-deep);font-size:18px;display:grid;place-items:center}
+.mic-btn.listening{background:var(--red-soft);color:var(--red-deep);animation:pulse 1s infinite}
+.ai-input-row .mic-btn{width:44px;height:44px}
 .add-field{margin-bottom:11px}
 .add-field label{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--ink-2)}
 .add-field input,.add-field select{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px 12px;font-size:13px;background:#fff;color:var(--ink);outline:none}

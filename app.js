@@ -28,11 +28,17 @@
 
   // 分区图标用 SVG，避免 emoji 在某些设备渲染成方框
   function layerIcon(layer) {
-    if (layer === '冷冻室') return ICON.snow;
+    if (layer.includes('冷冻')) return ICON.snow;
     if (layer === '果蔬抽屉') return ICON.leaf;
     if (layer === '冷藏室下层') return ICON.box;
-    if (layer === '冷藏室上层') return ICON.snow;
     return ICON.fridge;
+  }
+  function currentLayers() {
+    const m = FRIDGE_MODELS.find(x => x.key === STATE.fridgeModel) || FRIDGE_MODELS[0];
+    return m.layers;
+  }
+  function currentModel() {
+    return FRIDGE_MODELS.find(x => x.key === STATE.fridgeModel) || FRIDGE_MODELS[0];
   }
 
   function toast(msg) {
@@ -69,6 +75,7 @@
 
   function renderApp() {
     const page = STATE.appPage;
+    const pageChanged = lastPage !== page;
     let html = '';
     if (page === 'nfc') html = pageNfc();
     else if (page === 'home') html = pageHome();
@@ -79,18 +86,23 @@
     else if (page === 'product') html = pageProduct();
     else if (page === 'cart') html = pageCart();
     else if (page === 'device') html = pageDevice();
-    appEl.innerHTML = `<div class="page-wrap">${html}</div>`;
 
-    if (lastPage !== page) { appEl.scrollTop = 0; lastPage = page; }
-    renderTopbar(page);
+    const commit = () => {
+      appEl.innerHTML = `<div class="page-wrap${pageChanged ? ' entering' : ''}">${html}</div>`;
+      if (pageChanged) { appEl.scrollTop = 0; lastPage = page; }
+      renderTopbar(page);
+      const active = (page === 'recipe') ? 'recipes'
+        : (page === 'product' || page === 'cart') ? 'restock'
+        : (page === 'fridge' || page === 'nfc') ? 'home' : page;
+      tabEl.innerHTML = TABS.map((t, i) => {
+        const btn = `<button class="tab ${active === t.key ? 'active' : ''}" data-tab="${t.key}"><span class="tab-ico">${t.icon}</span>${t.label}</button>`;
+        return i === 1 ? btn + `<button class="tab-add" data-action="add-open" aria-label="添加食材">＋</button>` : btn;
+      }).join('');
+      $$('[data-app-route]').forEach(b => b.classList.toggle('active', b.dataset.appRoute === page));
+    };
+    if (pageChanged && document.startViewTransition) document.startViewTransition(commit);
+    else commit();
 
-    const active = (page === 'recipe') ? 'recipes'
-      : (page === 'product' || page === 'cart') ? 'restock'
-      : (page === 'fridge' || page === 'nfc') ? 'home' : page;
-    tabEl.innerHTML = TABS.map(t => `<button class="tab ${active === t.key ? 'active' : ''}" data-tab="${t.key}"><span class="tab-ico">${t.icon}</span>${t.label}</button>`).join('');
-    $$('[data-app-route]').forEach(b => b.classList.toggle('active', b.dataset.appRoute === page));
-
-    // 从首页分区卡片进入时，平滑滚动到对应分区，用轻提示代替原来的绿框
     if (page === 'fridge' && STATE.focusLayer) {
       const layer = STATE.focusLayer;
       STATE.focusLayer = null;
@@ -99,6 +111,7 @@
         if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); toast(`已定位到${layer}`); }
       }, 60);
     }
+    if (page === 'restock') maybeAutoRestock();
   }
 
   function pageNfc() {
@@ -123,48 +136,65 @@
       </div>`;
   }
 
+  function fridgeZoneView() {
+    const layers = currentLayers();
+    const groups = [
+      { title: '冷藏区', hint: '2~8℃ · 日常保鲜', layers: layers.filter(l => !l.includes('冷冻')) },
+      { title: '冷冻区', hint: '-18℃ · 长期保存', layers: layers.filter(l => l.includes('冷冻')) }
+    ];
+    return `<div class="fridge-view">${groups.filter(g => g.layers.length).map(g => `
+      <div class="fv-group ${g.title === '冷冻区' ? 'cold' : ''}">
+        <div class="fv-group-head"><span>${g.title}</span><span>${g.hint}</span></div>
+        ${g.layers.map(layer => {
+          const its = ITEMS.filter(i => i.layer === layer);
+          const urgent = its.filter(i => i.remainingDays <= 2).length;
+          const dots = its.length
+            ? its.slice(0, 6).map(i => `<i class="${i.freshness}"></i>`).join('')
+            : '<span class="fv-empty">空</span>';
+          return `<button class="fv-row" data-action="app-open-layer" data-layer="${esc(layer)}">
+            <span class="fv-ico">${layerIcon(layer)}</span>
+            <span class="fv-name">${esc(layer)}<small>${esc((LAYER_META[layer] || {}).temp || '')}</small></span>
+            <span class="fv-dots">${dots}</span>
+            <span class="fv-count">${its.length} 件${urgent ? `<em>${urgent} 急</em>` : ''}</span>
+            <span class="fv-arrow">›</span>
+          </button>`;
+        }).join('')}
+      </div>`).join('')}</div>`;
+  }
+
   function pageHome() {
-    // 一周内将过期（含已过期 0 天到 7 天），按天数分组，用户点天数查看状态
     const weekItems = ITEMS.filter(i => i.remainingDays >= 0 && i.remainingDays <= 7);
-    const byDay = d => weekItems.filter(i => i.remainingDays === d);
-    const dayCounts = [0,1,2,3,4,5,6,7].map(d => ({ d, n: byDay(d).length }));
+    const windows = [
+      { d: 0, label: '已过期', test: i => i.remainingDays === 0 },
+      { d: 1, label: '1天内', test: i => i.remainingDays === 1 },
+      { d: 2, label: '2天内', test: i => i.remainingDays >= 1 && i.remainingDays <= 2 },
+      { d: 3, label: '3天内', test: i => i.remainingDays >= 1 && i.remainingDays <= 3 },
+      { d: 7, label: '7天内', test: i => i.remainingDays >= 1 && i.remainingDays <= 7 }
+    ];
     const sel = STATE.expiryDay;
-    const dayItems = byDay(sel);
-    const layerCards = LAYERS.map((layer) => {
-      const its = ITEMS.filter(i => i.layer === layer);
-      const meta = LAYER_META[layer];
-      const shown = its.slice(0, 2);
-      const more = its.length - shown.length;
-      return `<button class="layer-mini" data-action="go-layer" data-layer="${esc(layer)}">
-        <div class="lm-top"><span class="lm-name">${layerIcon(layer)} ${esc(layer)}</span><span class="lm-count">${its.length} 件</span></div>
-        <div class="lm-tags">${shown.map(i => `<span class="lm-tag ${i.freshness}"><i></i><span>${esc(i.name)}</span><b>${i.remainingDays === 0 ? '已过期' : i.remainingDays + '天'}</b></span>`).join('') || '<span class="lm-tag none">还空着</span>'}</div>
-        <span class="lm-open">${more > 0 ? `还有 ${more} 样 · 查看全部` : '查看食材'} ›</span>
-      </button>`;
-    }).join('');
+    const win = windows.find(w => w.d === sel) || windows[3];
+    const dayItems = weekItems.filter(win.test).sort((a, b) => a.remainingDays - b.remainingDays);
     return `<div class="app-hero">
         <h2>早上好，今天想吃些什么</h2>
-        <p>冰箱里有 ${ITEMS.length} 件食材，看看有什么能做的</p>
+        <p>冰箱里有 ${ITEMS.length} 件食材 · ${currentModel().name}</p>
       </div>
-      <button class="ai-entry" data-action="add-open" data-mode="text" style="margin-bottom:14px">
-        <div class="ai-entry-top"><span class="ai-orb">＋</span><div class="grow"><h4>记一笔食材</h4><p>说一句、拍张小票，都能记下来</p></div><span class="ai-arrow">›</span></div>
-      </button>
       <div class="alert-banner">
         <span class="ab-ico">⏰</span>
         <div class="grow"><h4>这些食材快到期了（${weekItems.length} 件）</h4>
-          <p>看看哪天到期的，早点吃掉它们</p>
+          <p>按紧急程度查看，越靠前越该先吃</p>
           <div class="expiry-tabs">
-            ${dayCounts.map(x => `<button class="expiry-tab ${sel === x.d ? 'active' : ''}" data-action="expiry-day" data-day="${x.d}">${x.d === 0 ? '已过期' : x.d + '天'}<i>${x.n}件</i></button>`).join('')}
+            ${windows.map(w => `<button class="expiry-tab ${sel === w.d ? 'active' : ''}" data-action="expiry-day" data-day="${w.d}">${w.label}<i>${weekItems.filter(w.test).length}件</i></button>`).join('')}
           </div>
           <div class="expiry-list-mini">
             ${dayItems.length ? dayItems.map(i => `<div class="expiry-mini-row">
               <span class="em-ico">${i.icon}</span><span class="em-name">${esc(i.name)}</span>
-              <span class="em-meta">${i.remainingDays === 0 ? '已过期' : FRESHNESS[i.freshness].label} · ${i.quantity}${esc(i.unit)}</span>
-            </div>`).join('') : '<div class="expiry-none">这天没有快到期的食材</div>'}
+              <span class="em-meta">${i.remainingDays === 0 ? '已过期' : '还剩 ' + i.remainingDays + ' 天'} · ${i.quantity}${esc(i.unit)}</span>
+            </div>`).join('') : '<div class="expiry-none">这个范围内没有快到期的食材</div>'}
           </div>
         </div>
       </div>
       <div class="sec-title">冰箱分区 <button class="more" data-go="fridge">查看全部食材 ›</button></div>
-      <div class="layer-summary">${layerCards}</div>`;
+      ${fridgeZoneView()}`;
   }
 
   // 手机端冰箱食材库：下单同步后可直接查看新入库食材
@@ -173,7 +203,7 @@
     const freshCount = ITEMS.filter(i => i.freshness === 'green').length;
     const soonCount = ITEMS.filter(i => i.freshness === 'yellow').length;
     const nowCount = ITEMS.filter(i => i.freshness === 'red').length;
-    const layers = LAYERS.map((layer) => {
+    const layers = currentLayers().map((layer) => {
       const its = ITEMS.filter(i => i.layer === layer);
       const meta = LAYER_META[layer];
       return `<div class="fd-layer" data-layer="${esc(layer)}">
@@ -193,9 +223,9 @@
     return `<div class="fridge-hero">
         <button class="hero-back" data-go="home">‹ 返回首页</button>
         <h2>我的冰箱</h2>
-        <p>${ITEMS.length} 件食材 · ${LAYERS.length} 个分区${urgent ? ` · ${urgent} 件优先吃掉` : ''}</p>
+        <p>${ITEMS.length} 件食材 · ${currentLayers().length} 个分区${urgent ? ` · ${urgent} 件优先吃掉` : ''}</p>
       </div>
-      <button class="add-entry" data-action="add-open">＋ 添加食材 <span style="opacity:.75">手动 / 一句话 / 拍小票</span></button>
+      <button class="add-entry" data-action="add-open">＋ 添加食材 <span style="opacity:.75">拍照 / 手动 / 一句话</span></button>
       <div class="status-bar">
         <div class="status-chip"><b>${freshCount}</b><span>新鲜</span></div>
         <div class="status-chip soon"><b>${soonCount}</b><span>2 天内吃</span></div>
@@ -328,7 +358,7 @@
       <div class="setting-row"><span class="sr-ico">📶</span><div><div class="sr-title">Wi-Fi 连接</div><div class="sr-sub">${esc(d.wifi)} · 已配网</div></div><button class="mini-btn" data-action="go-pairing">重新配网</button></div>
       <div class="setting-row"><span class="sr-ico">📡</span><div><div class="sr-title">碰一碰</div><div class="sr-sub">${d.nfcBound ? '已开启 · 手机靠近冰箱感应区即可查看' : '未开启 · 请靠近冰箱感应区'}</div></div><div class="switch ${d.nfcBound ? 'on' : ''}" data-action="toggle-nfc"></div></div>
       <div class="setting-row"><span class="sr-ico">⚙️</span><div><div class="sr-title">系统版本</div><div class="sr-sub">${esc(d.firmware)} · ${d.firmwareLatest ? '已是最新版本' : '有可用更新'}</div></div></div>
-      <div class="setting-row"><span class="sr-ico">🔄</span><div><div class="sr-title">冰箱分区</div><div class="sr-sub">上层 / 中层 / 下层 / 果蔬抽屉 / 冷冻室</div></div></div>
+      <div class="setting-row"><span class="sr-ico">🧊</span><div><div class="sr-title">冰箱型号</div><div class="sr-sub">${esc(currentModel().name)} · ${currentLayers().length} 个分区</div></div><button class="mini-btn" data-action="fridge-model">更换</button></div>
       <button class="btn btn-ghost btn-block" data-action="simulate-nfc" style="margin-top:12px">碰一碰，查看冰箱食材</button>`;
   }
 
@@ -371,7 +401,97 @@
       </div></div>`;
     return true;
   }
-  function closeModal() { modalRoot.innerHTML = ''; }
+  function closeModal() { stopVoice(); modalRoot.innerHTML = ''; }
+
+  /* ============ 分区详情：只显示当前分区 ============ */
+  function showAppLayerModal(layer) {
+    const items = ITEMS.filter(i => i.layer === layer);
+    const meta = LAYER_META[layer] || { temp: '' };
+    modalRoot.innerHTML = `<div class="modal-overlay" data-action="close-modal">
+      <div class="modal-card" data-stop="1">
+        <div class="modal-head">
+          <div class="modal-icon">${layerIcon(layer)}</div>
+          <div class="grow"><h3>${esc(layer)}</h3><p>${esc(meta.temp)} · 共 ${items.length} 件</p></div>
+          <button class="al-close" data-action="close-app-layer" aria-label="关闭">${ICON.x}</button>
+        </div>
+        <div class="al-list">
+          ${items.map(i => `<div class="al-row ${i.freshness}">
+            <span class="al-emoji">${i.icon}</span>
+            <div class="al-info">
+              <div class="al-name">${esc(i.name)} <span class="pill-tag ${i.freshness}">${i.remainingDays === 0 ? '已过期' : '还剩 ' + i.remainingDays + ' 天'}</span></div>
+              <div class="al-meta">保质至 ${esc(i.expiryDate)} · ${i.quantity}${esc(i.unit)}</div>
+              <div class="al-bar"><span style="width:${i.freshPct}%;background:${FRESHNESS[i.freshness].color}"></span></div>
+            </div>
+            <div class="al-days ${i.freshness}"><b>${i.remainingDays === 0 ? '!' : i.remainingDays}</b><small>${i.remainingDays === 0 ? '过期' : '天'}</small></div>
+          </div>`).join('') || '<div class="muted" style="padding:20px;text-align:center">这层还空着，点底部 ＋ 添加食材</div>'}
+        </div>
+        <div class="modal-actions" style="margin-top:12px">
+          <button class="btn btn-ghost" data-action="close-app-layer">关闭</button>
+          <button class="btn btn-primary" data-action="layer-view-all">查看全部食材</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function showFridgeModelModal() {
+    modalRoot.innerHTML = `<div class="modal-overlay" data-action="close-modal">
+      <div class="modal-card" data-stop="1">
+        <div class="modal-head">
+          <div class="modal-icon">🧊</div>
+          <div class="grow"><h3>我的冰箱型号</h3><p>分区按你家冰箱来，不再搞混冷藏和冷冻</p></div>
+          <button class="al-close" data-action="close-app-layer" aria-label="关闭">${ICON.x}</button>
+        </div>
+        ${FRIDGE_MODELS.map(m => `<button class="model-option ${m.key === STATE.fridgeModel ? 'active' : ''}" data-action="choose-model" data-model="${m.key}">
+          <span class="mo-name">${m.name}</span><span class="mo-layers">${m.layers.join(' / ')}</span>
+        </button>`).join('')}
+        <label class="model-photo" for="model-photo">📷 拍照识别冰箱分区</label>
+        <input type="file" id="model-photo" accept="image/*" capture="environment" />
+        <div class="ai-footnote" style="margin-top:8px">拍照后会自动匹配最接近的分区结构</div>
+      </div>
+    </div>`;
+    const file = $('#model-photo');
+    if (file) file.addEventListener('change', () => {
+      closeModal(); applyFridgeModel('french'); toast('已识别：法式多门冰箱，冷冻区分为上下两层');
+    });
+  }
+
+  function applyFridgeModel(key) {
+    const prev = STATE.fridgeModel;
+    if (prev !== key) {
+      if (key === 'french') ITEMS.forEach(i => { if (i.layer === '冷冻室') i.layer = '冷冻室上层'; });
+      else if (prev === 'french') ITEMS.forEach(i => { if (i.layer.indexOf('冷冻室上') === 0 || i.layer.indexOf('冷冻室下') === 0) i.layer = '冷冻室'; });
+      if (key === 'side') ITEMS.forEach(i => { if (i.layer === '冷藏室中层' || i.layer === '冷藏室下层') i.layer = '冷藏室'; });
+      else if (prev === 'side') ITEMS.forEach(i => { if (i.layer === '冷藏室') i.layer = '冷藏室中层'; });
+    }
+    STATE.fridgeModel = key;
+    closeModal(); renderApp();
+    toast('已切换为' + currentModel().name);
+  }
+
+  function showAutoRestockModal(pending) {
+    const names = pending.map(r => r.name).join('、');
+    modalRoot.innerHTML = `<div class="modal-overlay" data-action="close-modal">
+      <div class="modal-card" data-stop="1">
+        <div class="modal-head">
+          <div class="modal-icon">🛒</div>
+          <div class="grow"><h3>要顺手补货吗？</h3><p>这几样常买的可能快用完了</p></div>
+          <button class="al-close" data-action="close-app-layer" aria-label="关闭">${ICON.x}</button>
+        </div>
+        <div class="dup-detail">检测到 <b>${esc(names)}</b> 在补货清单里。<br/>要我现在加进购物车，还是你自己来？</div>
+        <div class="modal-actions">
+          <button class="btn btn-ghost" data-action="auto-restock-manual">我自己补</button>
+          <button class="btn btn-primary" data-action="auto-restock-order">自动加购</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  function maybeAutoRestock() {
+    if (STATE.autoRestockAsked) return;
+    const pending = STATE.restock.filter(r => r.status === '待补' && skuByName(r.name));
+    if (!pending.length) return;
+    STATE.autoRestockAsked = true;
+    showAutoRestockModal(pending.slice(0, 3));
+  }
 
   /* ============ 下单 → 自动同步到冰箱食材库 ============ */
   function doCheckout() {
@@ -744,6 +864,7 @@
     return `<div class="text-add">
         <div class="ai-input-row">
           <input id="ai-food-input" class="ai-input" placeholder="例如：买了6个鸡蛋和2盒牛奶放冷藏" />
+          <button class="mic-btn" data-action="voice-text" aria-label="语音输入">🎤</button>
           <button class="btn btn-primary" data-action="entry-parse">识别</button>
         </div>
         <div class="ai-chips">
@@ -796,17 +917,59 @@
     toast(`已录入 ${parsed.length} 样食材到冰箱`);
   }
 
-  // 添加食材弹窗：手动 / 一句话 / 语音 / 拍照小票
-  let addMode = 'manual';
+  // 添加食材弹窗：拍照录入优先，手动 / 一句话 都内嵌真实语音识别
+  let addMode = 'photo';
+  let voiceRecognition = null;
+  function stopVoice() {
+    if (voiceRecognition) { try { voiceRecognition.stop(); } catch (e) {} voiceRecognition = null; }
+    $$('.mic-btn').forEach(b => b.classList.remove('listening'));
+  }
+  function startVoice(type) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { toast('当前浏览器不支持语音识别，请用 Chrome 或 Edge 打开'); return; }
+    stopVoice();
+    const rec = new SR();
+    rec.lang = 'zh-CN'; rec.interimResults = false; rec.maxAlternatives = 1;
+    rec.onstart = () => { $$('.mic-btn').forEach(b => b.classList.add('listening')); toast('正在听，请说出食材'); };
+    rec.onresult = (e) => {
+      const text = (e.results[0][0].transcript || '').trim();
+      if (!text) return;
+      if (type === 'text') {
+        const inp = $('#ai-food-input'); if (inp) inp.value = text;
+        entryParse(text); toast('已识别：' + text);
+      } else {
+        const parsed = parseFoodText(text);
+        if (parsed.length) {
+          const p = parsed[0];
+          const set = (id, val) => { const el = $('#' + id); if (el) el.value = val; };
+          set('af-name', p.name); set('af-qty', p.qty); set('af-unit', p.unit); set('af-days', p.days);
+          const layers = currentLayers();
+          set('af-layer', layers.includes(p.layer) ? p.layer : layers[0]);
+          toast('已识别：' + parsed.map(x => x.name).join('、'));
+        } else {
+          const el = $('#af-name'); if (el) el.value = text;
+          toast('已识别：' + text);
+        }
+      }
+    };
+    rec.onerror = (ev) => { toast(ev.error === 'not-allowed' ? '请允许麦克风权限' : '语音识别失败，请重试'); };
+    rec.onend = () => { $$('.mic-btn').forEach(b => b.classList.remove('listening')); voiceRecognition = null; };
+    voiceRecognition = rec;
+    try { rec.start(); } catch (e) { toast('语音识别启动失败'); }
+  }
   function showAddModal(mode) {
-    addMode = mode || 'manual';
+    stopVoice();
+    addMode = mode || 'photo';
     renderAddModal();
     if (addMode === 'text') setTimeout(() => { const el = $('#ai-food-input'); if (el) el.focus(); }, 50);
   }
   function renderAddModal() {
-    const panel = addMode === 'manual' ? `<div class="add-field"><label>食材名称</label><input id="af-name" placeholder="如：鸡蛋、牛奶、西兰花" /></div>
+    stopVoice();
+    const panel = addMode === 'manual' ? `<div class="add-field"><label>食材名称</label>
+        <div class="input-with-mic"><input id="af-name" placeholder="如：鸡蛋、牛奶、西兰花" /><button class="mic-btn" data-action="voice-manual" aria-label="语音输入">🎤</button></div>
+      </div>
       <div class="add-row">
-        <div class="add-field"><label>所在层</label><select id="af-layer">${LAYERS.map(l => `<option>${l}</option>`).join('')}</select></div>
+        <div class="add-field"><label>所在层</label><select id="af-layer">${currentLayers().map(l => `<option>${l}</option>`).join('')}</select></div>
       </div>
       <div class="add-row">
         <div class="add-field"><label>数量</label><input id="af-qty" type="number" min="1" value="1" /></div>
@@ -814,28 +977,22 @@
       </div>
       <div class="add-field"><label>保质期（天）</label><input id="af-days" type="number" min="0" value="7" /></div>`
       : addMode === 'text' ? textAddPanel()
-      : addMode === 'voice' ? `<div class="add-voice">
-          <div class="av-orb" id="av-orb">🎤</div>
-          <p>点击话筒说出食材，例如「6 枚鸡蛋放冷藏上层」</p>
-          <div class="av-result" id="av-result"></div>
-        </div>`
       : `<div class="add-camera">
-          <label for="af-photo"><span class="ac-orb">📷</span><p>点击拍照 / 上传小票，自动识别食材</p></label>
+          <label for="af-photo"><span class="ac-orb">📷</span><p>拍下食材或包装，自动识别食材名称和数量</p></label>
           <input type="file" id="af-photo" accept="image/*" capture="environment" />
         </div>
         <div class="add-preview" id="ap-preview"></div>`;
     modalRoot.innerHTML = `<div class="modal-overlay" data-action="close-modal">
       <div class="modal-card" data-stop="1">
         <div class="modal-head">
-          <div class="modal-icon">＋</div>
-          <div class="grow"><h3>添加食材</h3><p>写上、说一句、语音或拍小票，都行</p></div>
+          <div class="modal-icon">${ICON.box}</div>
+          <div class="grow"><h3>添加食材</h3><p>拍照、手动或说一句，都能记下来</p></div>
           <button class="al-close" data-action="close-app-layer" aria-label="关闭">${ICON.x}</button>
         </div>
         <div class="add-tabs">
+          <button class="add-tab ${addMode==='photo'?'active':''}" data-action="add-tab" data-mode="photo">📷 拍照录入</button>
           <button class="add-tab ${addMode==='manual'?'active':''}" data-action="add-tab" data-mode="manual">✍️ 手动</button>
           <button class="add-tab ${addMode==='text'?'active':''}" data-action="add-tab" data-mode="text">💬 一句话</button>
-          <button class="add-tab ${addMode==='voice'?'active':''}" data-action="add-tab" data-mode="voice">🎤 语音</button>
-          <button class="add-tab ${addMode==='receipt'?'active':''}" data-action="add-tab" data-mode="receipt">📷 拍小票</button>
         </div>
         <div id="add-panel">${panel}</div>
         <div class="modal-actions" style="margin-top:14px">
@@ -844,27 +1001,14 @@
         </div>
       </div>
     </div>`;
-    if (addMode === 'voice') {
-      const orb = $('#av-orb');
-      if (orb) orb.addEventListener('click', () => {
-        orb.classList.add('on');
-        const res = $('#av-result');
-        res.style.display = 'block'; res.textContent = '🎧 正在聆听…';
-        setTimeout(() => {
-          orb.classList.remove('on');
-          res.innerHTML = '✅ 已识别：<b>鲜鸡蛋 × 6 枚 · 冷藏室中层</b><br/>点击「确认添加」即可入库';
-          res.dataset.name = '鲜鸡蛋'; res.dataset.qty = '6'; res.dataset.unit = '枚'; res.dataset.layer = '冷藏室中层';
-        }, 900);
-      });
-    }
-    if (addMode === 'receipt') {
+    if (addMode === 'photo') {
       const file = $('#af-photo');
       if (file) file.addEventListener('change', () => {
         const pv = $('#ap-preview'); pv.style.display = 'block';
         pv.innerHTML = '<div style="font-size:13px;color:var(--muted);margin-bottom:6px">🔍 识别到以下食材：</div>' +
           [['全脂牛奶','1 盒','冷藏室上层'],['吐司面包','1 袋','冷藏室上层']].map(x => `<div class="ap-row"><span>🥗</span><span>${x[0]}</span><b>${x[1]}</b></div>`).join('') +
           '<div style="font-size:13px;color:var(--green-deep);margin-top:6px">点击「确认添加」将识别结果入库</div>';
-        pv.dataset.receipt = '1';
+        pv.dataset.photo = '1';
       });
     }
   }
@@ -902,18 +1046,12 @@
       entryParse(($('#ai-food-input') && $('#ai-food-input').value) || '');
       return;
     }
-    if (addMode === 'voice') {
-      const res = $('#av-result');
-      if (!res || !res.dataset.name) { toast('请先点击话筒完成语音识别'); return; }
-      if (addNewItem(res.dataset.name, +res.dataset.qty, res.dataset.unit, res.dataset.layer, 7)) closeModal();
-      return;
-    }
-    if (addMode === 'receipt') {
+    if (addMode === 'photo') {
       const pv = $('#ap-preview');
-      if (!pv || !pv.dataset.receipt) { toast('请先拍照 / 上传小票完成识别'); return; }
+      if (!pv || !pv.dataset.photo) { toast('请先拍照 / 上传食材照片'); return; }
       addNewItem('全脂牛奶', 1, '盒', '冷藏室上层', 8);
       addNewItem('吐司面包', 1, '袋', '冷藏室上层', 7);
-      closeModal(); toast('小票识别的 2 样食材已入库');
+      closeModal(); toast('识别的 2 样食材已入库');
     }
   }
 
@@ -945,6 +1083,20 @@
         closeModal(); return;
       }
       if (a === 'close-app-layer' || a === 'close-ai' || a === 'close-checkout') { closeModal(); return; }
+      if (a === 'app-open-layer') { showAppLayerModal(actionEl.dataset.layer); return; }
+      if (a === 'layer-view-all') { closeModal(); STATE.appPage = 'fridge'; renderApp(); return; }
+      if (a === 'fridge-model') { showFridgeModelModal(); return; }
+      if (a === 'choose-model') { applyFridgeModel(actionEl.dataset.model); return; }
+      if (a === 'voice-manual') { startVoice('manual'); return; }
+      if (a === 'voice-text') { startVoice('text'); return; }
+      if (a === 'auto-restock-manual') { closeModal(); toast('已留在补货清单，按你的节奏买'); return; }
+      if (a === 'auto-restock-order') {
+        const pending = STATE.restock.filter(r => r.status === '待补' && skuByName(r.name)).slice(0, 3);
+        pending.forEach(r => addToCart(skuByName(r.name), r.id));
+        closeModal(); renderApp();
+        toast(pending.length ? `已把 ${pending.length} 样加进购物车` : '清单里暂时没有可自动购买的商品');
+        return;
+      }
       if (a === 'expiry-day') { STATE.expiryDay = +actionEl.dataset.day; renderApp(); return; }
       if (a === 'pupu-open') { showPupuModal(); return; }
       if (a === 'pupu-open-app') { openPupuApp(); return; }
@@ -1063,7 +1215,8 @@
     ITEMS.length = 0; ITEMS_INITIAL.forEach(x => ITEMS.push({ ...x }));
     STATE.restock = RESTOCK_ITEMS.map(x => ({ ...x }));
     STATE.cart = []; STATE.checked = new Set(); STATE.device = { ...DEVICE };
-    STATE.appPage = 'home'; STATE.expiryDay = 1; STATE.aiDish = null;
+    STATE.appPage = 'home'; STATE.expiryDay = 3; STATE.aiDish = null;
+    STATE.fridgeModel = 'standard'; STATE.autoRestockAsked = false; STATE.focusLayer = null;
     renderApp(); toast('已恢复初始数据');
   });
 

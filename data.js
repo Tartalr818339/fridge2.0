@@ -10,8 +10,18 @@ const LAYER_META = {
   '冷藏室中层': { icon: '🧊', temp: '冷藏保鲜 · 2~6℃' },
   '冷藏室下层': { icon: '🫧', temp: '冷藏保鲜 · 0~4℃' },
   '果蔬抽屉':   { icon: '🥬', temp: '果蔬保湿 · 4~8℃' },
-  '冷冻室':     { icon: '🧊', temp: '冷冻保存 · -18℃' }
+  '冷冻室':     { icon: '🧊', temp: '冷冻保存 · -18℃' },
+  '冷藏室':     { icon: '❄️', temp: '冷藏保鲜 · 2~6℃' },
+  '冷冻室上层': { icon: '🧊', temp: '冷冻保存 · -18℃ · 上层' },
+  '冷冻室下层': { icon: '🧊', temp: '冷冻保存 · -18℃ · 下层' }
 };
+
+// 不同冰箱型号的分区结构：用户可在「我的」里切换，或拍照识别
+const FRIDGE_MODELS = [
+  { key: 'standard', name: '常规双门', layers: ['冷藏室上层', '冷藏室中层', '冷藏室下层', '果蔬抽屉', '冷冻室'] },
+  { key: 'french', name: '法式多门（冷冻双层）', layers: ['冷藏室上层', '冷藏室中层', '果蔬抽屉', '冷冻室上层', '冷冻室下层'] },
+  { key: 'side', name: '对开门', layers: ['冷藏室', '果蔬抽屉', '冷冻室'] }
+];
 
 const FRESHNESS = {
   green: { key: 'green', label: '新鲜', color: '#1DB954', soft: '#E8F7EE', note: '绿 = 新鲜' },
@@ -159,9 +169,11 @@ const STATE = {
   cart: [],                // { sku, name, qty, fromRestockId }
   checked: new Set(),      // 补货清单勾选状态
   device: { ...DEVICE },
-  expiryDay: 1,            // 到期提醒当前选中的天数（0~7）
-  aiDish: null,            // 配菜分析当前选中的菜品
-  focusLayer: null         // 从首页分区进入食材库时定位的分区
+  expiryDay: 3,            // 到期提醒筛选：0=已过期；1/2/3/7=N天内
+  fridgeModel: 'standard', // 当前冰箱型号 key
+  autoRestockAsked: false, // 自动补货提醒是否已询问
+  aiDish: null,
+  focusLayer: null
 };
 
 /* ---------- 手动/语音/拍照 添加食材：名称 → 图标/默认层 ---------- */
