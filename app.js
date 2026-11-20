@@ -574,13 +574,20 @@
     </div>`;
   }
 
-  // 打开朴朴 App：跳转朴朴官方 deeplink 页
-  // 已安装 App 会自动唤起，未安装则引导下载（由朴朴官方页处理）
+  // 打开朴朴：微信内优先唤起朴朴小程序，否则回退官方 deeplink（唤起 App / 引导下载）
   function openPupuApp() {
-    const url = 'https://ma.pupumall.com/deeplink';
+    const miniScheme = '#小程序://朴朴超市/cwrPIamLIJbwfPo';
+    const fallback = 'https://ma.pupumall.com/deeplink';
+    const inWeChat = /MicroMessenger/i.test(navigator.userAgent);
     toast('正在打开朴朴…');
-    try { window.location.href = url; }
-    catch (e) { window.open(url, '_blank'); }
+    if (inWeChat) {
+      // 微信内置浏览器：直接跳转小程序 scheme
+      try { window.location.href = miniScheme; }
+      catch (e) { window.location.href = fallback; }
+    } else {
+      // 普通浏览器不支持小程序 scheme，直接走官方 deeplink
+      window.open(fallback, '_blank');
+    }
   }
 
   // 标记朴朴已补齐：待补项全部入库并从清单移除（去重，只显示一次）
