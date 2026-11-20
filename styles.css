@@ -73,10 +73,10 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .tab-add:active{transform:translateY(-7px) scale(.96)}
 
 /* App 通用 */
-.app-hero{background:linear-gradient(135deg,#123D28,#1B6B3C);color:#fff;border-radius:20px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
-.app-hero::after{content:"";position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.06)}
+.app-hero{background:linear-gradient(135deg,#F2F8F4,#FBFCFA);color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
+.app-hero::after{content:"";position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;background:rgba(29,185,84,.05)}
 .app-hero h2{font-size:18px;position:relative}
-.app-hero p{font-size:14px;color:#D3EFDC;margin-top:4px;position:relative}
+.app-hero p{font-size:14px;color:#6B7C72;margin-top:4px;position:relative}
 .sec-title{font-size:14px;font-weight:700;margin:16px 0 10px;display:flex;align-items:center;justify-content:space-between}
 .sec-title .more{font-size:14px;color:#6B7C72;font-weight:500}
 .sec-title button.more{border:0;background:none;cursor:pointer;min-height:44px;padding:4px 0 4px 10px;color:var(--green-deep);font-weight:700}
@@ -158,10 +158,10 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .fv-arrow{font-size:20px;color:#9AA79F;flex:none}
 
 /* 冰箱食材库（手机端） */
-.fridge-hero{background:linear-gradient(135deg,#123D28,#1B6B3C);color:#fff;border-radius:20px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
+.fridge-hero{background:linear-gradient(135deg,#F2F8F4,#FBFCFA);color:var(--ink);border:1px solid var(--line);border-radius:20px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden}
 .hero-back{position:relative;display:inline-flex;align-items:center;min-height:34px;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:999px;padding:4px 12px;font-size:13px;margin-bottom:8px}
 .fridge-hero h2{font-size:18px;position:relative}
-.fridge-hero p{font-size:14px;color:#D3EFDC;margin-top:4px;position:relative}
+.fridge-hero p{font-size:14px;color:#6B7C72;margin-top:4px;position:relative}
 .status-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
 .status-chip{background:var(--green-soft);border-radius:13px;padding:10px 8px;text-align:center;color:var(--green-deep)}
 .status-chip b{display:block;font-size:20px;line-height:1.2}
@@ -189,10 +189,10 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .fd-days.yellow{color:var(--yellow-deep)}
 .fd-days.red{color:var(--red-deep)}
 
-.alert-banner{display:flex;gap:10px;align-items:flex-start;background:linear-gradient(100deg,#FFF6DA,#FFFBF0);border:1px solid #F6E3A6;border-radius:14px;padding:12px;margin-bottom:12px}
+.alert-banner{display:flex;gap:10px;align-items:flex-start;background:#FFFDF6;border:1px solid #F0E6C6;border-radius:14px;padding:12px;margin-bottom:12px}
 .alert-banner .ab-ico{font-size:20px}
-.alert-banner h4{font-size:14px;color:#8A6600}
-.alert-banner p{font-size:14px;color:#806200;margin-top:3px;line-height:1.5}
+.alert-banner h4{font-size:14px;color:#6B5310}
+.alert-banner p{font-size:14px;color:#6B7C72;margin-top:3px;line-height:1.5}
 .expire-chips{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .expire-chip{font-size:13px;padding:4px 9px;border-radius:8px;font-weight:700}
 .expire-chip.y1{background:var(--red-soft);color:var(--red-deep)}
@@ -320,12 +320,12 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .qty-ctrl button{width:30px;height:30px;border-radius:7px;background:#F0F4F1;font-weight:700;font-size:13px}
 
 /* 设备 */
-.device-card{background:linear-gradient(135deg,#123D28,#1B6B3C);color:#fff;border-radius:18px;padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
-.device-card::after{content:"";position:absolute;right:-20px;bottom:-30px;width:120px;height:120px;border:20px solid rgba(255,255,255,.05);border-radius:50%}
+.device-card{background:linear-gradient(135deg,#F2F8F4,#FBFCFA);color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
+.device-card::after{content:"";position:absolute;right:-20px;bottom:-30px;width:120px;height:120px;border:20px solid rgba(29,185,84,.04);border-radius:50%}
 .device-card h3{font-size:16px}
-.device-card p{font-size:13px;color:#BFE6CC;margin-top:3px}
+.device-card p{font-size:13px;color:#6B7C72;margin-top:3px}
 .device-status{display:flex;gap:8px;margin-top:14px;position:relative}
-.ds-item{background:rgba(255,255,255,.12);border-radius:10px;padding:8px 10px;font-size:13px}
+.ds-item{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px}
 .ds-item b{display:block;font-size:14px;margin-top:2px}
 .setting-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px}
 .setting-row .sr-ico{width:32px;height:32px;border-radius:9px;background:#F0F4F1;display:grid;place-items:center;font-size:15px}
@@ -403,9 +403,12 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .add-entry{width:100%;min-height:46px;border:1.5px dashed var(--green);background:var(--green-soft);color:var(--green-deep);border-radius:13px;padding:13px;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px;margin-bottom:14px}
 
 /* ============ 添加食材弹窗 ============ */
-.add-tabs{display:flex;gap:5px;margin-bottom:14px}
+.add-tabs{display:flex;gap:5px;margin-bottom:9px}
 .add-tab{flex:1;min-width:0;padding:9px 2px;border-radius:10px;background:var(--paper);font-size:12.5px;font-weight:700;color:var(--ink-2);white-space:nowrap}
 .add-tab.active{background:var(--green);color:#fff}
+.batch-toggle{display:flex;gap:4px;background:var(--paper);border-radius:10px;padding:3px;margin-bottom:12px}
+.batch-seg{flex:1;min-height:34px;border-radius:8px;font-size:13px;font-weight:700;color:var(--ink-2);background:transparent}
+.batch-seg.active{background:#fff;color:var(--green-deep);box-shadow:0 1px 5px rgba(18,61,40,.08)}
 .input-with-mic{display:flex;gap:8px;align-items:center}
 .input-with-mic input{flex:1;min-width:0}
 .mic-btn{flex:none;width:44px;height:44px;border-radius:12px;background:var(--green-soft);color:var(--green-deep);font-size:18px;display:grid;place-items:center}

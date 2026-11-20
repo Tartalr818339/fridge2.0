@@ -1018,8 +1018,9 @@
     toast(`已录入 ${parsed.length} 样食材到冰箱`);
   }
 
-  // 添加食材弹窗：拍照录入优先，手动 / 一句话 都内嵌真实语音识别
+  // 添加食材弹窗：拍照 / 手动 / 一句话 三种方式，各自都有单件与批量
   let addMode = 'photo';
+  let addBatch = false;
   let voiceRecognition = null;
   function stopVoice() {
     if (voiceRecognition) { try { voiceRecognition.stop(); } catch (e) {} voiceRecognition = null; }
@@ -1058,53 +1059,49 @@
     voiceRecognition = rec;
     try { rec.start(); } catch (e) { toast('语音识别启动失败'); }
   }
-  function showAddModal(mode) {
-    stopVoice();
-    addMode = mode || 'photo';
-    renderAddModal();
-    if (addMode === 'text') setTimeout(() => { const el = $('#ai-food-input'); if (el) el.focus(); }, 50);
+
+  function addPanelHtml() {
+    if (addBatch) {
+      if (addMode === 'photo') {
+        return `<div class="add-camera">
+            <label for="af-photos"><span class="ac-orb">📷</span><p>一次选多张食材照片，批量识别入库</p></label>
+            <input type="file" id="af-photos" accept="image/*" capture="environment" multiple />
+          </div>
+          <div class="add-preview" id="ap-preview"></div>`;
+      }
+      return batchPanel();
+    }
+    if (addMode === 'manual') {
+      return `<div class="add-field"><label>食材名称</label>
+          <div class="input-with-mic"><input id="af-name" placeholder="如：鸡蛋、牛奶、西兰花" /><button class="mic-btn" data-action="voice-manual" aria-label="语音输入">🎤</button></div>
+        </div>
+        <div class="add-row">
+          <div class="add-field"><label>所在层</label><select id="af-layer">${currentLayers().map(l => `<option>${l}</option>`).join('')}</select></div>
+        </div>
+        <div class="add-row">
+          <div class="add-field"><label>数量</label><input id="af-qty" type="number" min="1" value="1" /></div>
+          <div class="add-field"><label>单位</label><input id="af-unit" value="份" /></div>
+        </div>
+        <div class="add-field"><label>保质期（天）</label><input id="af-days" type="number" min="0" value="7" /></div>`;
+    }
+    if (addMode === 'text') return textAddPanel();
+    return `<div class="add-camera">
+        <label for="af-photo"><span class="ac-orb">📷</span><p>拍下食材或包装，自动识别食材名称和数量</p></label>
+        <input type="file" id="af-photo" accept="image/*" capture="environment" />
+      </div>
+      <div class="add-preview" id="ap-preview"></div>`;
   }
-  function renderAddModal() {
-    stopVoice();
-    const panel = addMode === 'manual' ? `<div class="add-field"><label>食材名称</label>
-        <div class="input-with-mic"><input id="af-name" placeholder="如：鸡蛋、牛奶、西兰花" /><button class="mic-btn" data-action="voice-manual" aria-label="语音输入">🎤</button></div>
-      </div>
-      <div class="add-row">
-        <div class="add-field"><label>所在层</label><select id="af-layer">${currentLayers().map(l => `<option>${l}</option>`).join('')}</select></div>
-      </div>
-      <div class="add-row">
-        <div class="add-field"><label>数量</label><input id="af-qty" type="number" min="1" value="1" /></div>
-        <div class="add-field"><label>单位</label><input id="af-unit" value="份" /></div>
-      </div>
-      <div class="add-field"><label>保质期（天）</label><input id="af-days" type="number" min="0" value="7" /></div>`
-      : addMode === 'text' ? textAddPanel()
-      : addMode === 'batch' ? batchPanel()
-      : `<div class="add-camera">
-          <label for="af-photo"><span class="ac-orb">📷</span><p>拍下食材或包装，自动识别食材名称和数量</p></label>
-          <input type="file" id="af-photo" accept="image/*" capture="environment" />
-        </div>
-        <div class="add-preview" id="ap-preview"></div>`;
-    modalRoot.innerHTML = `<div class="modal-overlay" data-action="close-modal">
-      <div class="modal-card" data-stop="1">
-        <div class="modal-head">
-          <div class="modal-icon">${ICON.box}</div>
-          <div class="grow"><h3>添加食材</h3><p>拍照、批量、手动或说一句，都能记下来</p></div>
-          <button class="al-close" data-action="close-app-layer" aria-label="关闭">${ICON.x}</button>
-        </div>
-        <div class="add-tabs">
-          <button class="add-tab ${addMode==='photo'?'active':''}" data-action="add-tab" data-mode="photo">📷 拍照</button>
-          <button class="add-tab ${addMode==='batch'?'active':''}" data-action="add-tab" data-mode="batch">📋 批量</button>
-          <button class="add-tab ${addMode==='manual'?'active':''}" data-action="add-tab" data-mode="manual">✍️ 手动</button>
-          <button class="add-tab ${addMode==='text'?'active':''}" data-action="add-tab" data-mode="text">💬 一句话</button>
-        </div>
-        <div id="add-panel">${panel}</div>
-        <div class="modal-actions" style="margin-top:14px">
-          <button class="btn btn-ghost grow" data-action="close-app-layer">取消</button>
-          <button class="btn btn-primary grow" data-action="add-save">${addMode === 'text' || addMode === 'batch' ? '识别食材' : '确认添加'}</button>
-        </div>
-      </div>
-    </div>`;
-    if (addMode === 'photo') {
+  function addSubtitle() {
+    if (addBatch) return '一次记多件，确认后一起入库';
+    if (addMode === 'photo') return '拍下食材或包装，自动识别';
+    if (addMode === 'manual') return '手动填写，也可以点话筒说出来';
+    return '说一句或写一句，自动拆成食材';
+  }
+  function addPrimaryLabel() {
+    return (addBatch || addMode === 'text') ? '识别食材' : '确认添加';
+  }
+  function bindAddPanel() {
+    if (addMode === 'photo' && !addBatch) {
       const file = $('#af-photo');
       if (file) file.addEventListener('change', () => {
         const pv = $('#ap-preview'); pv.style.display = 'block';
@@ -1114,6 +1111,59 @@
         pv.dataset.photo = '1';
       });
     }
+    if (addMode === 'photo' && addBatch) {
+      const files = $('#af-photos');
+      if (files) files.addEventListener('change', () => {
+        const pv = $('#ap-preview'); pv.style.display = 'block';
+        pv.innerHTML = '<div style="font-size:13px;color:var(--muted);margin-bottom:6px">🔍 多张照片识别到 3 样食材：</div>' +
+          [['鲜鸡蛋','6 枚','冷藏室中层'],['全脂牛奶','1 盒','冷藏室上层'],['番茄','4 个','果蔬抽屉']].map(x => `<div class="ap-row"><span>🥗</span><span>${x[0]}</span><b>${x[1]}</b></div>`).join('');
+        pv.dataset.photoBatch = '1';
+      });
+    }
+  }
+  function renderAddPanel() {
+    stopVoice();
+    const panel = $('#add-panel');
+    if (!panel) return;
+    panel.innerHTML = addPanelHtml();
+    const sub = $('#add-subtitle'); if (sub) sub.textContent = addSubtitle();
+    const save = $('[data-action="add-save"]'); if (save) save.textContent = addPrimaryLabel();
+    $$('.add-tab').forEach(b => b.classList.toggle('active', b.dataset.mode === addMode));
+    $$('.batch-seg').forEach(b => b.classList.toggle('active', (b.dataset.batch === 'batch') === addBatch));
+    bindAddPanel();
+  }
+  function showAddModal(mode) {
+    stopVoice();
+    addMode = mode || 'photo';
+    addBatch = false;
+    renderAddModal();
+    if (addMode === 'text') setTimeout(() => { const el = $('#ai-food-input'); if (el) el.focus(); }, 50);
+  }
+  function renderAddModal() {
+    modalRoot.innerHTML = `<div class="modal-overlay" data-action="close-modal">
+      <div class="modal-card" data-stop="1">
+        <div class="modal-head">
+          <div class="modal-icon">${ICON.box}</div>
+          <div class="grow"><h3>添加食材</h3><p id="add-subtitle">${addSubtitle()}</p></div>
+          <button class="al-close" data-action="close-app-layer" aria-label="关闭">${ICON.x}</button>
+        </div>
+        <div class="add-tabs">
+          <button class="add-tab ${addMode==='photo'?'active':''}" data-action="add-tab" data-mode="photo">📷 拍照</button>
+          <button class="add-tab ${addMode==='manual'?'active':''}" data-action="add-tab" data-mode="manual">✍️ 手动</button>
+          <button class="add-tab ${addMode==='text'?'active':''}" data-action="add-tab" data-mode="text">💬 一句话</button>
+        </div>
+        <div class="batch-toggle">
+          <button class="batch-seg ${!addBatch?'active':''}" data-action="add-batch" data-batch="single">单件</button>
+          <button class="batch-seg ${addBatch?'active':''}" data-action="add-batch" data-batch="batch">批量</button>
+        </div>
+        <div id="add-panel"></div>
+        <div class="modal-actions" style="margin-top:14px">
+          <button class="btn btn-ghost grow" data-action="close-app-layer">取消</button>
+          <button class="btn btn-primary grow" data-action="add-save">${addPrimaryLabel()}</button>
+        </div>
+      </div>
+    </div>`;
+    renderAddPanel();
   }
   function addNewItem(name, qty, unit, layer, days) {
     name = String(name || '').trim();
@@ -1145,12 +1195,21 @@
       if (addNewItem(name, qty, unit, layer, days)) closeModal();
       return;
     }
-    if (addMode === 'text') {
-      entryParse(($('#ai-food-input') && $('#ai-food-input').value) || '');
+    if (addBatch) {
+      if (addMode === 'photo') {
+        const pv = $('#ap-preview');
+        if (!pv || !pv.dataset.photoBatch) { toast('请先选好多张食材照片'); return; }
+        addNewItem('鲜鸡蛋', 6, '枚', '冷藏室中层', 8);
+        addNewItem('全脂牛奶', 1, '盒', '冷藏室上层', 8);
+        addNewItem('番茄', 4, '个', '果蔬抽屉', 7);
+        closeModal(); toast('多张照片识别的 3 样食材已入库');
+      } else {
+        batchParse(($('#batch-input') && $('#batch-input').value) || '');
+      }
       return;
     }
-    if (addMode === 'batch') {
-      batchParse(($('#batch-input') && $('#batch-input').value) || '');
+    if (addMode === 'text') {
+      entryParse(($('#ai-food-input') && $('#ai-food-input').value) || '');
       return;
     }
     if (addMode === 'photo') {
@@ -1220,7 +1279,8 @@
         return;
       }
       if (a === 'batch-confirm') { batchConfirm(); return; }
-      if (a === 'add-tab') { addMode = actionEl.dataset.mode; renderAddModal(); return; }
+      if (a === 'add-tab') { addMode = actionEl.dataset.mode; renderAddPanel(); return; }
+      if (a === 'add-batch') { addBatch = actionEl.dataset.batch === 'batch'; renderAddPanel(); return; }
       if (a === 'add-save') { addSave(); return; }
       if (a === 'ai-view-steps') { showAiSteps(); return; }
       if (a === 'checkout') { doCheckout(); return; }
