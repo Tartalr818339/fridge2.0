@@ -117,7 +117,7 @@
       <div class="alert-banner">
         <span class="ab-ico">⏰</span>
         <div class="grow"><h4>临期提醒（一周内将过期 ${weekItems.length} 件）</h4>
-          <p>点选天数查看当天到期的食材；数字代表该天到期的食材件数。</p>
+          <p>点选天数查看当天到期食材，数字为该天件数。</p>
           <div class="expiry-tabs">
             ${dayCounts.map(x => `<button class="expiry-tab ${sel === x.d ? 'active' : ''}" data-action="expiry-day" data-day="${x.d}">${x.d === 0 ? '已过期' : x.d + '天'}<i>${x.n}件</i></button>`).join('')}
           </div>
@@ -146,7 +146,7 @@
             <span class="fd-emoji">${i.icon}</span>
             <div class="fd-info">
               <div class="fd-name">${esc(i.name)} <span class="pill-tag ${i.freshness}">${i.remainingDays === 0 ? '已过期' : FRESHNESS[i.freshness].label}</span></div>
-              <div class="fd-meta">${esc(i.purchaseDate)} 购买 · 保质至 ${esc(i.expiryDate)} · ${i.quantity}${esc(i.unit)}</div>
+              <div class="fd-meta">保质至 ${esc(i.expiryDate)} · ${i.quantity}${esc(i.unit)}</div>
             </div>
             <div class="fd-days ${i.freshness}"><b>${i.remainingDays === 0 ? '!' : i.remainingDays}</b><small>${i.remainingDays === 0 ? '过期' : '天'}</small></div>
           </div>`).join('') || '<div class="muted" style="padding:8px">该层暂无食材</div>'}
@@ -522,7 +522,7 @@
             <span class="al-emoji">${i.icon}</span>
             <div class="al-info">
               <div class="al-name">${esc(i.name)} <span class="pill-tag ${i.freshness}">${i.remainingDays === 0 ? '已过期' : FRESHNESS[i.freshness].label}</span></div>
-              <div class="al-meta">${esc(i.purchaseDate)} 购买 · 保质至 ${esc(i.expiryDate)} · ${i.quantity}${esc(i.unit)}</div>
+              <div class="al-meta">保质至 ${esc(i.expiryDate)} · ${i.quantity}${esc(i.unit)}</div>
               <div class="al-bar"><span style="width:${i.freshPct}%;background:${FRESHNESS[i.freshness].color}"></span></div>
             </div>
             <div class="al-days ${i.freshness}"><b>${i.remainingDays === 0 ? '!' : i.remainingDays}</b><small>${i.remainingDays === 0 ? '过期' : '天'}</small></div>

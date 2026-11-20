@@ -168,7 +168,7 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 
 /* 食谱 */
 /* AI 智能配菜入口 */
-.ai-entry{background:linear-gradient(120deg,#123D28,#196B43 60%,#0E7C3A);color:#fff;border-radius:18px;padding:15px;margin-bottom:14px;position:relative;overflow:hidden;cursor:pointer;box-shadow:0 10px 26px rgba(14,124,58,.28);transition:.2s}
+.ai-entry{display:block;width:100%;box-sizing:border-box;background:linear-gradient(120deg,#123D28,#196B43 60%,#0E7C3A);color:#fff;border-radius:18px;padding:15px;margin:0 0 14px;position:relative;overflow:hidden;cursor:pointer;text-align:left;box-shadow:0 10px 26px rgba(14,124,58,.28);transition:.2s}
 .ai-entry:active{transform:translateY(-2px);box-shadow:0 14px 32px rgba(14,124,58,.36)}
 .ai-entry::after{content:"";position:absolute;right:-26px;top:-26px;width:110px;height:110px;border:16px solid rgba(255,255,255,.06);border-radius:50%}
 .ai-entry-top{display:flex;align-items:center;gap:11px;position:relative}
@@ -320,12 +320,13 @@ h1,h2,h3,h4,h5{font-weight:700;letter-spacing:-.01em}
 .layer-mini .lm-tags{flex:none;min-height:0;overflow:hidden}
 .layer-mini .lm-open{flex:none;margin-top:auto;padding-top:4px}
 
-/* ============ 临期天数筛选条 ============ */
-.expiry-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
-.expiry-tab{min-width:52px;min-height:44px;padding:6px 9px;border-radius:10px;background:rgba(255,255,255,.7);color:#8A6600;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px}
-.expiry-tab.active{background:#8A6600;color:#fff}
-.expiry-tab i{font-style:normal;min-width:24px;height:22px;line-height:22px;padding:0 4px;text-align:center;font-size:13px;font-weight:800;border-radius:999px;background:rgba(138,102,0,.14);color:#8A6600}
-.expiry-tab.active i{background:#fff;color:#8A6600}
+/* ============ 临期天数筛选：单行分段控制器 ============ */
+.expiry-tabs{display:flex;gap:2px;margin-top:9px;padding:4px;border-radius:12px;background:rgba(255,255,255,.5);overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.expiry-tabs::-webkit-scrollbar{display:none}
+.expiry-tab{flex:none;min-width:64px;min-height:44px;padding:6px 10px;border-radius:9px;background:transparent;color:#7A5C00;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:5px;transition:.18s}
+.expiry-tab.active{background:#8A6600;color:#fff;box-shadow:0 2px 8px rgba(138,102,0,.22)}
+.expiry-tab i{font-style:normal;min-width:22px;height:20px;line-height:20px;padding:0 3px;text-align:center;font-size:12px;font-weight:800;border-radius:999px;background:rgba(138,102,0,.13);color:#7A5C00}
+.expiry-tab.active i{background:rgba(255,255,255,.24);color:#fff}
 .expiry-list-mini{margin-top:9px;display:flex;flex-direction:column;gap:5px}
 .expiry-mini-row{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.75);border-radius:8px;padding:6px 8px;font-size:13px;color:#6B5200}
 .expiry-mini-row .em-ico{font-size:16px}
